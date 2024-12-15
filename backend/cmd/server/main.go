@@ -31,23 +31,31 @@ func main() {
 	}
 	defer db.Close()
 
-	// Init queries
+	// Initialize queries
 	queries := sqlc.New(db)
+
+	mux := http.NewServeMux()
+
+	// authHandler := handlers.NewAuthHandler(queries)
+	// // Auth routes
+	// mux.HandleFunc("/login/", authHandler.HandleLogin)
+	// mux.HandleFunc("/refresh/", authHandler.HandleRefresh) // refresh token
 
 	userHandler := handlers.NewUserHandler(queries)
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
 
-	http.HandleFunc("/users/", userHandler.HandleUsers)
-	http.HandleFunc("/user-profiles/", userProfileHandler.HandleUserProfiles)
+	// User routes (protected)
+	mux.HandleFunc("/users/", userHandler.HandleUsers)
+	mux.HandleFunc("/user-profiles/", userProfileHandler.HandleUserProfiles)
 
-	// Set up handlers here
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// Default/root handler
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintf(w, "<html><head><title>API</title></head><body>Hello, World!</body></html>")
 	})
 
 	log.Printf("Server starting on port %s...", cfg.Server.Port)
-	if err := http.ListenAndServe(":"+cfg.Server.Port, nil); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Server.Port, mux); err != nil {
 		log.Fatal(err)
 	}
 }
