@@ -1,0 +1,17 @@
+root = "/app"
+tmp_dir = "tmp"
+build_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ./cmd/server/main.go"
+bin = "./tmp/main"
+include_ext = ["go"]
+exclude_dir = ["tmp"]
+delay = 1000
+full_bin = "./tmp/main"
+
+[log]
+time = true
+
+[screen]
+clear_on_rebuild = true

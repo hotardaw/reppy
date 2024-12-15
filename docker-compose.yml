@@ -1,0 +1,65 @@
+# To open in separate terminal:
+# docker exec -it fitsync-backend-1 /bin/bash
+# tmux
+
+version: '3.8'
+
+services:
+
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+    volumes:
+     - ./backend:/app
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=db
+      - DB_USER=user01
+      - DB_PASSWORD=pass01
+      - DB_NAME=fitsyncdb
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:14
+    volumes:
+      - ./backend/internal/database/init:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_USER=user01
+      - POSTGRES_PASSWORD=pass01
+      - POSTGRES_DB=fitsyncdb
+    ports:
+      - "8082:5432" #8082:5432 is for connecting to Postgres from outside Docker, e.g. using a db client on host machine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user01 -d fitsyncdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "8083:80"
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
