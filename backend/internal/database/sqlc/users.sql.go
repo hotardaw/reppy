@@ -7,7 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -39,9 +38,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users
+UPDATE users
+SET active = false, updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
-RETURNING user_id, email, password_hash, username, active, created_at, updated_at, last_login
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, userID int32) error {
@@ -119,6 +118,7 @@ func (q *Queries) GetUser(ctx context.Context, userID int32) (User, error) {
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT user_id, email, password_hash, username, active, created_at, updated_at, last_login FROM users 
 WHERE email = $1 AND active = true
+LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -139,23 +139,22 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 
 const updateLastLogin = `-- name: UpdateLastLogin :exec
 UPDATE users 
-SET last_login = $2
+SET last_login = CURRENT_TIMESTAMP
 WHERE user_id = $1
 `
 
-type UpdateLastLoginParams struct {
-	UserID    int32
-	LastLogin sql.NullTime
-}
-
-func (q *Queries) UpdateLastLogin(ctx context.Context, arg UpdateLastLoginParams) error {
-	_, err := q.db.ExecContext(ctx, updateLastLogin, arg.UserID, arg.LastLogin)
+func (q *Queries) UpdateLastLogin(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, updateLastLogin, userID)
 	return err
 }
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET email = $2, password_hash = $3, username = $4
+SET 
+  email = COALESCE($2, email),
+  password_hash = COALESCE($3, password_hash),
+  username = COALESCE($4, username),
+  updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
 RETURNING user_id, email, password_hash, username, active, created_at, updated_at, last_login
 `

@@ -54,21 +54,18 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Auth routes (unprotected)
-	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received %s request to /login", r.Method)
-		authHandler.HandleLogin(w, r)
-	})
-	mux.HandleFunc("/refresh", authHandler.HandleRefresh)
+	mux.HandleFunc("/login/", middleware.LoggingMiddleware(authHandler.HandleLogin))
+	mux.HandleFunc("/refresh", middleware.LoggingMiddleware(authHandler.HandleRefresh))
 
 	// User routes (protected)
-	mux.HandleFunc("/users/", userHandler.HandleUsers)
-	mux.HandleFunc("/user-profiles/", userProfileHandler.HandleUserProfiles)
+	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userHandler.HandleUsers))
+	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileHandler.HandleUserProfiles))
 
 	// Default/root handler
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", middleware.LoggingMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintf(w, "<html><head><title>FitSync API</title></head><body>Hello, World!</body></html>")
-	})
+	}))
 
 	log.Printf("Server starting on port %s...", cfg.Server.Port)
 	if err := http.ListenAndServe(":"+cfg.Server.Port, mux); err != nil {

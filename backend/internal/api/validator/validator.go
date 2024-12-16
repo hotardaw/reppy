@@ -6,3 +6,4 @@ Validating email formats
 Checking string lengths
 Type checking
 */
+package validator

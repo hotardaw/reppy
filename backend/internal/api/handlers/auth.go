@@ -8,7 +8,8 @@ import (
 	"go-fitsync/backend/internal/database/sqlc"
 	"log"
 	"net/http"
-	"time"
+	"path"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,6 +41,12 @@ type RefreshRequest struct {
 }
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
+	if cleanPath != "/login" {
+		http.Error(w, "Invalid path", http.StatusNotFound)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -80,13 +87,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update last login
-	if err := h.queries.UpdateLastLogin(r.Context(), sqlc.UpdateLastLoginParams{
-		UserID: user.UserID,
-		LastLogin: sql.NullTime{
-			Time:  time.Now(),
-			Valid: true,
-		},
-	}); err != nil {
+	if err := h.queries.UpdateLastLogin(r.Context(), user.UserID); err != nil {
 		// log err but don't fail the request
 		log.Printf("Failed to update last login: %v", err)
 	}
