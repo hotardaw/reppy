@@ -13,6 +13,7 @@ import (
 	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/config"
 	"go-fitsync/backend/internal/database"
+	"go-fitsync/backend/internal/database/seeder"
 	"go-fitsync/backend/internal/database/sqlc"
 
 	// this is "side-effect import".
@@ -33,6 +34,14 @@ func main() {
 	}
 	defer db.Close()
 
+	queries := sqlc.New(db)
+
+	// Account seeding
+	if err := seeder.SeedTestData(queries); err != nil {
+		// log.Printf instead of Fatal so app continues even if seeding fails
+		log.Printf("Warning: Failed to seed test data: %v", err)
+	}
+
 	// Set JWT config, initialize auth middleware
 	jwtConfig := middleware.JWTConfig{
 		AccessSecret:    []byte(cfg.JWT.AccessSecret),
@@ -43,9 +52,6 @@ func main() {
 	}
 	authMiddleware := middleware.NewAuthMiddleware(jwtConfig)
 
-	// Initialize queries
-	queries := sqlc.New(db)
-
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(queries, authMiddleware)
 	userHandler := handlers.NewUserHandler(queries)
@@ -55,7 +61,7 @@ func main() {
 
 	// Auth routes (unprotected)
 	mux.HandleFunc("/login/", middleware.LoggingMiddleware(authHandler.HandleLogin))
-	mux.HandleFunc("/refresh", middleware.LoggingMiddleware(authHandler.HandleRefresh))
+	mux.HandleFunc("/refresh/", middleware.LoggingMiddleware(authHandler.HandleRefresh))
 
 	// User routes (protected)
 	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userHandler.HandleUsers))
