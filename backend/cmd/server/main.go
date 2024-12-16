@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"go-fitsync/backend/internal/api/handlers"
+	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/config"
 	"go-fitsync/backend/internal/database"
 	"go-fitsync/backend/internal/database/sqlc"
@@ -31,18 +33,29 @@ func main() {
 	}
 	defer db.Close()
 
+	// Set JWT config, initialize auth middleware
+	jwtConfig := middleware.JWTConfig{
+		AccessSecret:    []byte(cfg.JWT.AccessSecret),
+		RefreshSecret:   []byte(cfg.JWT.RefreshSecret),
+		AccessDuration:  15 * time.Minute,
+		RefreshDuration: 7 * 24 * time.Hour,
+		Issuer:          "fitsync",
+	}
+	authMiddleware := middleware.NewAuthMiddleware(jwtConfig)
+
 	// Initialize queries
 	queries := sqlc.New(db)
 
-	mux := http.NewServeMux()
-
-	// authHandler := handlers.NewAuthHandler(queries)
-	// // Auth routes
-	// mux.HandleFunc("/login/", authHandler.HandleLogin)
-	// mux.HandleFunc("/refresh/", authHandler.HandleRefresh) // refresh token
-
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(queries, authMiddleware)
 	userHandler := handlers.NewUserHandler(queries)
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
+
+	mux := http.NewServeMux()
+
+	// Auth routes (unprotected)
+	mux.HandleFunc("/login/", authHandler.HandleLogin)
+	mux.HandleFunc("/refresh/", authHandler.HandleRefresh)
 
 	// User routes (protected)
 	mux.HandleFunc("/users/", userHandler.HandleUsers)
@@ -51,7 +64,7 @@ func main() {
 	// Default/root handler
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<html><head><title>API</title></head><body>Hello, World!</body></html>")
+		fmt.Fprintf(w, "<html><head><title>FitSync API</title></head><body>Hello, World!</body></html>")
 	})
 
 	log.Printf("Server starting on port %s...", cfg.Server.Port)

@@ -12,6 +12,10 @@ type Config struct {
 	Server struct {
 		Port string
 	}
+	JWT struct {
+		AccessSecret  string
+		RefreshSecret string
+	}
 }
 
 func Load() (*Config, error) {

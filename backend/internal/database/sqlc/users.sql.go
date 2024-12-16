@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -113,6 +114,43 @@ func (q *Queries) GetUser(ctx context.Context, userID int32) (User, error) {
 		&i.LastLogin,
 	)
 	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT user_id, email, password_hash, username, active, created_at, updated_at, last_login FROM users 
+WHERE email = $1 AND active = true
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Username,
+		&i.Active,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const updateLastLogin = `-- name: UpdateLastLogin :exec
+UPDATE users 
+SET last_login = $2
+WHERE user_id = $1
+`
+
+type UpdateLastLoginParams struct {
+	UserID    int32
+	LastLogin sql.NullTime
+}
+
+func (q *Queries) UpdateLastLogin(ctx context.Context, arg UpdateLastLoginParams) error {
+	_, err := q.db.ExecContext(ctx, updateLastLogin, arg.UserID, arg.LastLogin)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :one

@@ -13,6 +13,10 @@ WHERE users.user_id = $1;
 SELECT *
 FROM users;
 
+-- name: GetUserByEmail :one
+SELECT * FROM users 
+WHERE email = $1 AND active = true;
+
 -- name: CreateUser :one
 INSERT INTO users (email, password_hash, username)
 VALUES ($1, $2, $3)
@@ -23,6 +27,11 @@ UPDATE users
 SET email = $2, password_hash = $3, username = $4
 WHERE user_id = $1
 RETURNING *;
+
+-- name: UpdateLastLogin :exec
+UPDATE users 
+SET last_login = $2
+WHERE user_id = $1;
 
 -- name: DeleteUser :exec
 DELETE FROM users
