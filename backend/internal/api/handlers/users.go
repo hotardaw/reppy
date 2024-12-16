@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Holds dependencies for user handlers
@@ -56,9 +60,9 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		Email        string `json:"email"`
-		PasswordHash string `json:"password_hash"`
-		Username     string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Username string `json:"username"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -66,13 +70,30 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Failed to process password", http.StatusInternalServerError)
+		return
+	}
+
 	user, err := h.queries.CreateUser(r.Context(), sqlc.CreateUserParams{
 		Email:        request.Email,
-		PasswordHash: request.PasswordHash,
+		PasswordHash: string(hashedPassword),
 		Username:     request.Username,
 	})
 
 	if err != nil {
+		// handle dupe emails/usernames
+		if strings.Contains(err.Error(), "unique constraint") {
+			if strings.Contains(err.Error(), "email") {
+				http.Error(w, "Email already in use", http.StatusConflict)
+			} else if strings.Contains(err.Error(), "username") {
+				http.Error(w, "Username already taken", http.StatusConflict)
+			} else {
+				http.Error(w, "Duplicate value", http.StatusConflict)
+			}
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -132,9 +153,9 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request, parts [
 	}
 
 	var request struct {
-		Email        string `json:"email"`
-		PasswordHash string `json:"password_hash"`
-		Username     string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password,omitempty"`
+		Username string `json:"username"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -142,14 +163,38 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request, parts [
 		return
 	}
 
-	user, err := h.queries.UpdateUser(r.Context(), sqlc.UpdateUserParams{
-		UserID:       int32(id),
-		Email:        request.Email,
-		PasswordHash: request.PasswordHash,
-		Username:     request.Username,
-	})
+	params := sqlc.UpdateUserParams{
+		UserID:   int32(id),
+		Email:    request.Email,
+		Username: request.Username,
+	}
 
+	if request.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "Failed to process password", http.StatusInternalServerError)
+			return
+		}
+		params.PasswordHash = string(hashedPassword)
+	}
+
+	user, err := h.queries.UpdateUser(r.Context(), params)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		// handle dupes
+		if strings.Contains(err.Error(), "unique constraint") {
+			if strings.Contains(err.Error(), "email") {
+				http.Error(w, "Email already in use", http.StatusConflict)
+			} else if strings.Contains(err.Error(), "username") {
+				http.Error(w, "Username already taken", http.StatusConflict)
+			} else {
+				http.Error(w, "Duplicate value", http.StatusConflict)
+			}
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -54,8 +54,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Auth routes (unprotected)
-	mux.HandleFunc("/login/", authHandler.HandleLogin)
-	mux.HandleFunc("/refresh/", authHandler.HandleRefresh)
+	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Received %s request to /login", r.Method)
+		authHandler.HandleLogin(w, r)
+	})
+	mux.HandleFunc("/refresh", authHandler.HandleRefresh)
 
 	// User routes (protected)
 	mux.HandleFunc("/users/", userHandler.HandleUsers)
