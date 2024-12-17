@@ -26,3 +26,6 @@ RETURNING *;
 DELETE FROM user_profiles
 WHERE user_id = $1
 RETURNING *;
+
+-- name: DeleteAllUserProfiles :exec
+DELETE FROM user_profiles;

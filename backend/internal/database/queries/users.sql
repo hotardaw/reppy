@@ -42,3 +42,6 @@ WHERE user_id = $1;
 UPDATE users
 SET active = false, updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1;
+
+-- name: DeleteAllUsers :exec
+DELETE FROM users;

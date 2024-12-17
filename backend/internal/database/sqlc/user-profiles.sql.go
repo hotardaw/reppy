@@ -50,6 +50,15 @@ func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfilePa
 	return i, err
 }
 
+const deleteAllUserProfiles = `-- name: DeleteAllUserProfiles :exec
+DELETE FROM user_profiles
+`
+
+func (q *Queries) DeleteAllUserProfiles(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllUserProfiles)
+	return err
+}
+
 const deleteUserProfile = `-- name: DeleteUserProfile :one
 DELETE FROM user_profiles
 WHERE user_id = $1

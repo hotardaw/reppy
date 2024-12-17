@@ -46,7 +46,25 @@ func GetTestUsers() []TestUser {
 	}
 }
 
+func cleanTestData(queries *sqlc.Queries) error {
+	// delete all user profiles first bc of foreign key constraints
+	err := queries.DeleteAllUserProfiles(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean user profiles: %v", err)
+	}
+
+	err = queries.DeleteAllUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean users: %v", err)
+	}
+	return nil
+}
+
 func SeedTestData(queries *sqlc.Queries) error {
+	if err := cleanTestData(queries); err != nil {
+		return fmt.Errorf("failed to clean test data: %v", err)
+	}
+
 	for _, user := range GetTestUsers() {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {

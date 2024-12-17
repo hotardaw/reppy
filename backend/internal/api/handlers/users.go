@@ -25,8 +25,8 @@ func NewUserHandler(q *sqlc.Queries) *UserHandler {
 }
 
 func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	parts := strings.Split(cleanPath, "/")
+	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/")) // "/users"
+	parts := strings.Split(cleanPath, "/")                       // "[ users ]"
 
 	switch r.Method {
 	case http.MethodGet:
@@ -36,13 +36,13 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 			h.GetAllUsers(w, r, parts)
 		}
 	case http.MethodPost:
-		if len(parts) > 2 {
+		if len(parts) > 3 {
 			http.Error(w, "Invalid URL for POST request", http.StatusBadRequest)
 			return
 		}
 		h.CreateUser(w, r)
 	case http.MethodPut:
-		if len(parts) > 2 {
+		if len(parts) > 3 {
 			http.Error(w, "Invalid URL for PUT request", http.StatusBadRequest)
 			return
 		}
