@@ -65,11 +65,6 @@ func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, parts 
 }
 
 func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, parts []string) {
-	if len(parts) != 3 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -128,22 +123,23 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 }
 
 func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, parts []string) {
-	if len(parts) != 3 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	err = h.queries.DeleteUser(r.Context(), int32(id))
+	user, err := h.queries.DeleteUser(r.Context(), int32(id))
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(user)
 }

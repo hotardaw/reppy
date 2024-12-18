@@ -46,15 +46,28 @@ func (q *Queries) DeleteAllUsers(ctx context.Context) error {
 	return err
 }
 
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :one
 UPDATE users
 SET active = false, updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
+RETURNING user_id, email, password_hash, username, active, created_at, updated_at, last_login
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, userID int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, userID)
-	return err
+// Soft delete only - too many headaches if this gets actual users.
+func (q *Queries) DeleteUser(ctx context.Context, userID int32) (User, error) {
+	row := q.db.QueryRowContext(ctx, deleteUser, userID)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Username,
+		&i.Active,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastLogin,
+	)
+	return i, err
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
