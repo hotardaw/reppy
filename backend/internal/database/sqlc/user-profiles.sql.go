@@ -11,9 +11,9 @@ import (
 )
 
 const createUserProfile = `-- name: CreateUserProfile :one
-INSERT INTO user_profiles (user_id, first_name, last_name, date_of_birth, gender, height_inches)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, profile_picture_url, created_at, updated_at
+INSERT INTO user_profiles (user_id, first_name, last_name, date_of_birth, gender, height_inches, weight_pounds)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, weight_pounds, profile_picture_url, created_at, updated_at
 `
 
 type CreateUserProfileParams struct {
@@ -23,6 +23,7 @@ type CreateUserProfileParams struct {
 	DateOfBirth  sql.NullTime
 	Gender       sql.NullString
 	HeightInches sql.NullInt32
+	WeightPounds sql.NullInt32
 }
 
 func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) (UserProfile, error) {
@@ -33,6 +34,7 @@ func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfilePa
 		arg.DateOfBirth,
 		arg.Gender,
 		arg.HeightInches,
+		arg.WeightPounds,
 	)
 	var i UserProfile
 	err := row.Scan(
@@ -43,6 +45,7 @@ func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfilePa
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.HeightInches,
+		&i.WeightPounds,
 		&i.ProfilePictureUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -62,7 +65,7 @@ func (q *Queries) DeleteAllUserProfiles(ctx context.Context) error {
 const deleteUserProfile = `-- name: DeleteUserProfile :one
 DELETE FROM user_profiles
 WHERE user_id = $1
-RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, profile_picture_url, created_at, updated_at
+RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, weight_pounds, profile_picture_url, created_at, updated_at
 `
 
 func (q *Queries) DeleteUserProfile(ctx context.Context, userID sql.NullInt32) (UserProfile, error) {
@@ -76,6 +79,7 @@ func (q *Queries) DeleteUserProfile(ctx context.Context, userID sql.NullInt32) (
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.HeightInches,
+		&i.WeightPounds,
 		&i.ProfilePictureUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -84,7 +88,7 @@ func (q *Queries) DeleteUserProfile(ctx context.Context, userID sql.NullInt32) (
 }
 
 const getAllUserProfiles = `-- name: GetAllUserProfiles :many
-SELECT user_profiles.profile_id, user_profiles.user_id, user_profiles.first_name, user_profiles.last_name, user_profiles.date_of_birth, user_profiles.gender, user_profiles.height_inches, user_profiles.profile_picture_url, user_profiles.created_at, user_profiles.updated_at
+SELECT user_profiles.profile_id, user_profiles.user_id, user_profiles.first_name, user_profiles.last_name, user_profiles.date_of_birth, user_profiles.gender, user_profiles.height_inches, user_profiles.weight_pounds, user_profiles.profile_picture_url, user_profiles.created_at, user_profiles.updated_at
 FROM user_profiles
 `
 
@@ -105,6 +109,7 @@ func (q *Queries) GetAllUserProfiles(ctx context.Context) ([]UserProfile, error)
 			&i.DateOfBirth,
 			&i.Gender,
 			&i.HeightInches,
+			&i.WeightPounds,
 			&i.ProfilePictureUrl,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -123,7 +128,7 @@ func (q *Queries) GetAllUserProfiles(ctx context.Context) ([]UserProfile, error)
 }
 
 const getUserProfile = `-- name: GetUserProfile :one
-SELECT user_profiles.profile_id, user_profiles.user_id, user_profiles.first_name, user_profiles.last_name, user_profiles.date_of_birth, user_profiles.gender, user_profiles.height_inches, user_profiles.profile_picture_url, user_profiles.created_at, user_profiles.updated_at
+SELECT user_profiles.profile_id, user_profiles.user_id, user_profiles.first_name, user_profiles.last_name, user_profiles.date_of_birth, user_profiles.gender, user_profiles.height_inches, user_profiles.weight_pounds, user_profiles.profile_picture_url, user_profiles.created_at, user_profiles.updated_at
 FROM user_profiles
 WHERE user_profiles.user_id = $1
 `
@@ -139,6 +144,7 @@ func (q *Queries) GetUserProfile(ctx context.Context, userID sql.NullInt32) (Use
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.HeightInches,
+		&i.WeightPounds,
 		&i.ProfilePictureUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -151,17 +157,23 @@ UPDATE user_profiles
 SET 
   first_name = $2, 
   last_name = $3, 
-  height_inches = $4, 
+  date_of_birth = $4,
+  gender = $5,
+  height_inches = $6,
+  weight_pounds = $7,
   updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
-RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, profile_picture_url, created_at, updated_at
+RETURNING profile_id, user_id, first_name, last_name, date_of_birth, gender, height_inches, weight_pounds, profile_picture_url, created_at, updated_at
 `
 
 type UpdateUserProfileParams struct {
 	UserID       sql.NullInt32
 	FirstName    sql.NullString
 	LastName     sql.NullString
+	DateOfBirth  sql.NullTime
+	Gender       sql.NullString
 	HeightInches sql.NullInt32
+	WeightPounds sql.NullInt32
 }
 
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UserProfile, error) {
@@ -169,7 +181,10 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		arg.UserID,
 		arg.FirstName,
 		arg.LastName,
+		arg.DateOfBirth,
+		arg.Gender,
 		arg.HeightInches,
+		arg.WeightPounds,
 	)
 	var i UserProfile
 	err := row.Scan(
@@ -180,6 +195,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.HeightInches,
+		&i.WeightPounds,
 		&i.ProfilePictureUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,

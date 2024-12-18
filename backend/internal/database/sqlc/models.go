@@ -33,6 +33,7 @@ type UserProfile struct {
 	DateOfBirth       sql.NullTime
 	Gender            sql.NullString
 	HeightInches      sql.NullInt32
+	WeightPounds      sql.NullInt32
 	ProfilePictureUrl sql.NullString
 	CreatedAt         sql.NullTime
 	UpdatedAt         sql.NullTime

@@ -40,7 +40,16 @@ func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.Request) {}
+func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.Request) {
+	userProfiles, err := h.queries.GetAllUserProfiles(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userProfiles)
+}
 
 func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Request) {
 	var request struct {

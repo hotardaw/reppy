@@ -19,6 +19,7 @@ CREATE TABLE user_profiles (
     date_of_birth DATE,
     gender VARCHAR(20),
     height_inches INTEGER,
+    weight_pounds INTEGER,
     profile_picture_url VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

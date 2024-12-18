@@ -87,11 +87,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request, parts []string) {
-	if len(parts) != 2 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-
 	users, err := h.queries.GetAllUsers(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

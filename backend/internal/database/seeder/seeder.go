@@ -19,6 +19,7 @@ type TestUser struct {
 	Gender    string
 	DOB       time.Time
 	Height    int32
+	Weight    int32
 }
 
 func GetTestUsers() []TestUser {
@@ -32,6 +33,7 @@ func GetTestUsers() []TestUser {
 			Gender:    "Male",
 			DOB:       time.Date(1999, 11, 19, 0, 0, 0, 0, time.UTC),
 			Height:    74,
+			Weight:    185,
 		},
 		{
 			Email:     "aiyana@test.com",
@@ -42,6 +44,7 @@ func GetTestUsers() []TestUser {
 			Gender:    "Female",
 			DOB:       time.Date(2000, 7, 5, 0, 0, 0, 0, time.UTC),
 			Height:    63,
+			Weight:    130,
 		},
 	}
 }
@@ -124,6 +127,10 @@ func SeedTestData(queries *sqlc.Queries) error {
 			},
 			HeightInches: sql.NullInt32{
 				Int32: user.Height,
+				Valid: true,
+			},
+			WeightPounds: sql.NullInt32{
+				Int32: user.Weight,
 				Valid: true,
 			},
 		})
