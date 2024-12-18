@@ -8,6 +8,12 @@ import (
 	"database/sql"
 )
 
+type AppState struct {
+	Key       string
+	Value     sql.NullString
+	CreatedAt sql.NullTime
+}
+
 type User struct {
 	UserID       int32
 	Email        string

@@ -60,7 +60,28 @@ func cleanTestData(queries *sqlc.Queries) error {
 	return nil
 }
 
+func shouldSeed(queries *sqlc.Queries) (bool, error) {
+	hasSeeded, err := queries.CheckInitialSeed(context.Background())
+	if err != nil {
+		return false, err
+	}
+	return !hasSeeded, nil
+}
+
+func markSeedComplete(queries *sqlc.Queries) error {
+	return queries.MarkInitialSeed(context.Background())
+}
+
 func SeedTestData(queries *sqlc.Queries) error {
+	shouldDoSeed, err := shouldSeed(queries)
+	if err != nil {
+		return fmt.Errorf("failed to check seed status: %v", err)
+	}
+
+	if !shouldDoSeed {
+		return nil // meaning seeding alreadyt happened
+	}
+
 	if err := cleanTestData(queries); err != nil {
 		return fmt.Errorf("failed to clean test data: %v", err)
 	}
@@ -109,6 +130,10 @@ func SeedTestData(queries *sqlc.Queries) error {
 		if err != nil {
 			return fmt.Errorf("failed to create profile for user %s: %v", user.Email, err)
 		}
+	}
+
+	if err := markSeedComplete(queries); err != nil {
+		return fmt.Errorf("failed to mark seeding complete: %v", err)
 	}
 
 	return nil

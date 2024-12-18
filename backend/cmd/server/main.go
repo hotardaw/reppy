@@ -38,7 +38,7 @@ func main() {
 
 	// Account seeding
 	if err := seeder.SeedTestData(queries); err != nil {
-		// log.Printf instead of Fatal so app continues even if seeding fails
+		// Printf instead of Fatal so app continues even if seeding fails
 		log.Printf("Warning: Failed to seed test data: %v", err)
 	}
 
@@ -55,7 +55,9 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(queries, authMiddleware)
 	userHandler := handlers.NewUserHandler(queries)
+	userByIDHandler := handlers.NewUserByIDHandler(queries)
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
+	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
 
 	mux := http.NewServeMux()
 
@@ -64,8 +66,10 @@ func main() {
 	mux.HandleFunc("/refresh/", middleware.LoggingMiddleware(authHandler.HandleRefresh))
 
 	// User routes (protected)
-	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userHandler.HandleUsers))
-	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileHandler.HandleUserProfiles))
+	mux.HandleFunc("/users", middleware.LoggingMiddleware(userHandler.HandleUsers))         // GET (list), POST (create)
+	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userByIDHandler.HandleUserByID)) // GET, PATCH, DELETE with ID
+	mux.HandleFunc("/user-profiles", middleware.LoggingMiddleware(userProfileHandler.HandleUserProfiles))
+	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileByIDHandler.HandleUserProfilesByID))
 
 	// Default/root handler
 	mux.HandleFunc("/", middleware.LoggingMiddleware(func(w http.ResponseWriter, r *http.Request) {
