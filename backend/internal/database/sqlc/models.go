@@ -6,12 +6,33 @@ package sqlc
 
 import (
 	"database/sql"
+	"time"
 )
 
 type AppState struct {
 	Key       string
 	Value     sql.NullString
 	CreatedAt sql.NullTime
+}
+
+type Exercise struct {
+	ExerciseID   int32
+	ExerciseName string
+	Description  sql.NullString
+	CreatedAt    sql.NullTime
+}
+
+type ExerciseMuscle struct {
+	ExerciseID       int32
+	MuscleID         int32
+	InvolvementLevel string
+}
+
+type Muscle struct {
+	MuscleID    int32
+	MuscleName  string
+	MuscleGroup string
+	CreatedAt   sql.NullTime
 }
 
 type User struct {
@@ -37,4 +58,36 @@ type UserProfile struct {
 	ProfilePictureUrl sql.NullString
 	CreatedAt         sql.NullTime
 	UpdatedAt         sql.NullTime
+}
+
+type Workout struct {
+	WorkoutID   int32
+	UserID      sql.NullInt32
+	WorkoutDate time.Time
+	Title       sql.NullString
+	CreatedAt   sql.NullTime
+	UpdatedAt   sql.NullTime
+}
+
+type WorkoutExercise struct {
+	WorkoutExerciseID int32
+	WorkoutID         sql.NullInt32
+	ExerciseName      string
+	Sets              int32
+	Reps              int32
+	ResistanceType    string
+	ResistanceValue   sql.NullInt32
+	ResistanceDetail  sql.NullString
+	CreatedAt         sql.NullTime
+}
+
+type WorkoutSet struct {
+	WorkoutID        int32
+	ExerciseID       int32
+	SetNumber        int32
+	Reps             sql.NullInt32
+	ResistanceType   string
+	ResistanceValue  sql.NullInt32
+	ResistanceDetail sql.NullString
+	CreatedAt        sql.NullTime
 }

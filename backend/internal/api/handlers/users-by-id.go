@@ -47,7 +47,6 @@ func (h *UserByIDHandler) HandleUserByID(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, parts []string) {
-
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)

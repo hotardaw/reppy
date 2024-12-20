@@ -36,7 +36,7 @@ func (h *UserProfileByIDHandler) HandleUserProfilesByID(w http.ResponseWriter, r
 	switch r.Method {
 	case http.MethodGet:
 		h.GetUserProfile(w, r, parts)
-	case http.MethodPut:
+	case http.MethodPatch:
 		h.UpdateUserProfile(w, r, parts)
 	case http.MethodDelete:
 		h.DeleteUserProfile(w, r, parts)
@@ -96,7 +96,7 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 			Valid:  true,
 		},
 		LastName: sql.NullString{
-			String: request.FirstName,
+			String: request.LastName,
 			Valid:  true,
 		},
 		HeightInches: sql.NullInt32{

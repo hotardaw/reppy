@@ -58,6 +58,7 @@ func main() {
 	userByIDHandler := handlers.NewUserByIDHandler(queries)
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
 	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
+	muscleHandler := handlers.NewMuscleHandler(queries)
 
 	mux := http.NewServeMux()
 
@@ -66,10 +67,16 @@ func main() {
 	mux.HandleFunc("/refresh/", middleware.LoggingMiddleware(authHandler.HandleRefresh))
 
 	// User routes (protected)
-	mux.HandleFunc("/users", middleware.LoggingMiddleware(userHandler.HandleUsers))         // GET (list), POST (create)
-	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userByIDHandler.HandleUserByID)) // GET, PATCH, DELETE with ID
-	mux.HandleFunc("/user-profiles", middleware.LoggingMiddleware(userProfileHandler.HandleUserProfiles))
-	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileByIDHandler.HandleUserProfilesByID))
+	mux.HandleFunc("/users", middleware.LoggingMiddleware(userHandler.HandleUsers))         // GET(all), POST
+	mux.HandleFunc("/users/", middleware.LoggingMiddleware(userByIDHandler.HandleUserByID)) // GET, PATCH, DELETE w/ ID
+
+	mux.HandleFunc("/user-profiles", middleware.LoggingMiddleware(userProfileHandler.HandleUserProfiles))          // GET(all), POST
+	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
+
+	mux.HandleFunc("/muscles", middleware.LoggingMiddleware(muscleHandler.HandleMuscles))
+
+	// mux.HandleFunc("/workouts", middleware.LoggingMiddleware(workoutHandler.HandleWorkouts))     // GET, POST
+	// mux.HandleFunc("/workouts/", middleware.LoggingMiddleware(workoutHandler.HandleWorkoutByID)) // GET, PATCH, DELETE w/ ID
 
 	// Default/root handler
 	mux.HandleFunc("/", middleware.LoggingMiddleware(func(w http.ResponseWriter, r *http.Request) {
