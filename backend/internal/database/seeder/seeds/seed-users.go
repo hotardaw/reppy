@@ -67,7 +67,7 @@ func SeedUsers(queries *sqlc.Queries) error {
 			Username:     user.Username,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create user %s: %v", user.Email, err)
+			return fmt.Errorf("failed to seed user %s: %v", user.Email, err)
 		}
 
 		// Only create profile if the user has profile information
@@ -108,5 +108,6 @@ func SeedUsers(queries *sqlc.Queries) error {
 			}
 		}
 	}
+	fmt.Println("Successfully seeded USERS & USER_PROFILES table")
 	return nil
 }

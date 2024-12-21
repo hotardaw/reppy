@@ -59,6 +59,7 @@ func main() {
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
 	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
 	muscleHandler := handlers.NewMuscleHandler(queries)
+	exerciseHandler := handlers.NewMuscleHandler(queries)
 
 	mux := http.NewServeMux()
 
@@ -74,6 +75,7 @@ func main() {
 	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
 
 	mux.HandleFunc("/muscles", middleware.LoggingMiddleware(muscleHandler.HandleMuscles))
+	mux.HandleFunc("/exercise", middleware.LoggingMiddleware(exerciseHandler.HandleMuscles))
 
 	// mux.HandleFunc("/workouts", middleware.LoggingMiddleware(workoutHandler.HandleWorkouts))     // GET, POST
 	// mux.HandleFunc("/workouts/", middleware.LoggingMiddleware(workoutHandler.HandleWorkoutByID)) // GET, PATCH, DELETE w/ ID
@@ -81,7 +83,18 @@ func main() {
 	// Default/root handler
 	mux.HandleFunc("/", middleware.LoggingMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<html><head><title>FitSync API</title></head><body>Hello, World!</body></html>")
+		fmt.Fprintf(w, `<html><head><title>FitSync API</title></head><body>
+		<u>FitSync API Routes</u>:
+		<li>/login/</li>
+		<li>/refresh/</li>
+		<li>/users</li>
+		<li>/users/{user_id}</li>
+		<li>/user-profiles</li>
+		<li>/user-profiles/{user_id}</li>
+		<li>/muscles</li>
+		<li>/exercises</li>
+		
+		</body></html>`)
 	}))
 
 	log.Printf("Server starting on port %s...", cfg.Server.Port)

@@ -70,5 +70,6 @@ func SeedMuscles(queries *sqlc.Queries) error {
 			return fmt.Errorf("failed to create muscle %s: %v", muscle.MuscleName, err)
 		}
 	}
+	fmt.Println("Successfully seeded MUSCLES table")
 	return nil
 }
