@@ -52,7 +52,10 @@ func (h *UserProfileByIDHandler) GetUserProfile(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	userProfile, err := h.queries.GetUserProfile(r.Context(), sql.NullInt32{Int32: int32(id), Valid: true})
+	userProfile, err := h.queries.GetUserProfile(r.Context(), sql.NullInt32{
+		Int32: int32(id),
+		Valid: true,
+	})
 	if err == sql.ErrNoRows {
 		http.Error(w, "User profile not found", http.StatusNotFound)
 		return

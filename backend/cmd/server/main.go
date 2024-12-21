@@ -59,7 +59,7 @@ func main() {
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
 	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
 	muscleHandler := handlers.NewMuscleHandler(queries)
-	exerciseHandler := handlers.NewMuscleHandler(queries)
+	exerciseHandler := handlers.NewExerciseHandler(queries)
 
 	mux := http.NewServeMux()
 
@@ -75,7 +75,7 @@ func main() {
 	mux.HandleFunc("/user-profiles/", middleware.LoggingMiddleware(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
 
 	mux.HandleFunc("/muscles", middleware.LoggingMiddleware(muscleHandler.HandleMuscles))
-	mux.HandleFunc("/exercise", middleware.LoggingMiddleware(exerciseHandler.HandleMuscles))
+	mux.HandleFunc("/exercises", middleware.LoggingMiddleware(exerciseHandler.HandleExercises))
 
 	// mux.HandleFunc("/workouts", middleware.LoggingMiddleware(workoutHandler.HandleWorkouts))     // GET, POST
 	// mux.HandleFunc("/workouts/", middleware.LoggingMiddleware(workoutHandler.HandleWorkoutByID)) // GET, PATCH, DELETE w/ ID
