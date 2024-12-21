@@ -49,7 +49,10 @@ func SeedTestData(queries *sqlc.Queries) error {
 		return fmt.Errorf("failed to clean test data: %v", err)
 	}
 
-	// below starts seed user logic
+	/*
+	** below starts seed user logic:
+	 */
+
 	if err = seeds.SeedUsers(queries); err != nil {
 		return fmt.Errorf("failed to seed users: %v", err)
 	}
@@ -62,8 +65,12 @@ func SeedTestData(queries *sqlc.Queries) error {
 		return fmt.Errorf("failed to seed exercises: %v", err)
 	}
 
-	// if err = seedExercisesMuscles(queries); err != nil {
-	// 	return fmt.Errorf("failed to seed exercises: %v", err)
+	if err = seeds.SeedExerciseMuscles(queries); err != nil {
+		return fmt.Errorf("failed to seed exercise-muscle associations: %v", err)
+	}
+
+	// if err = seeds.SeedWorkouts(queries); err != nil {
+	// 	return fmt.Errorf("failed to seed workouts: %v", err)
 	// }
 
 	if err := markSeedComplete(queries); err != nil {
