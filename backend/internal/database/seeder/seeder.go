@@ -69,9 +69,11 @@ func SeedTestData(queries *sqlc.Queries) error {
 		return fmt.Errorf("failed to seed exercise-muscle associations: %v", err)
 	}
 
-	// if err = seeds.SeedWorkouts(queries); err != nil {
-	// 	return fmt.Errorf("failed to seed workouts: %v", err)
-	// }
+	if err = seeds.SeedWorkouts(queries); err != nil {
+		return fmt.Errorf("failed to seed workouts: %v", err)
+	}
+
+	// workout sets
 
 	if err := markSeedComplete(queries); err != nil {
 		return fmt.Errorf("failed to mark seeding complete: %v", err)

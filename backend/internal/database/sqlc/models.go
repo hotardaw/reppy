@@ -6,8 +6,53 @@ package sqlc
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
+
+type ResistanceTypeEnum string
+
+const (
+	ResistanceTypeEnumWeight     ResistanceTypeEnum = "weight"
+	ResistanceTypeEnumBand       ResistanceTypeEnum = "band"
+	ResistanceTypeEnumBodyweight ResistanceTypeEnum = "bodyweight"
+)
+
+func (e *ResistanceTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ResistanceTypeEnum(s)
+	case string:
+		*e = ResistanceTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ResistanceTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullResistanceTypeEnum struct {
+	ResistanceTypeEnum ResistanceTypeEnum
+	Valid              bool // Valid is true if ResistanceTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullResistanceTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.ResistanceTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ResistanceTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullResistanceTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ResistanceTypeEnum), nil
+}
 
 type AppState struct {
 	Key       string
@@ -26,6 +71,12 @@ type ExerciseMuscle struct {
 	ExerciseID       int32
 	MuscleID         int32
 	InvolvementLevel string
+}
+
+type ExerciseOneRm struct {
+	UserID       sql.NullInt32
+	ExerciseName string
+	Estimated1rm interface{}
 }
 
 type Muscle struct {
@@ -69,25 +120,16 @@ type Workout struct {
 	UpdatedAt   sql.NullTime
 }
 
-type WorkoutExercise struct {
-	WorkoutExerciseID int32
-	WorkoutID         sql.NullInt32
-	ExerciseName      string
-	Sets              int32
-	Reps              int32
-	ResistanceType    string
-	ResistanceValue   sql.NullInt32
-	ResistanceDetail  sql.NullString
-	CreatedAt         sql.NullTime
-}
-
 type WorkoutSet struct {
 	WorkoutID        int32
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
-	ResistanceType   string
 	ResistanceValue  sql.NullInt32
+	ResistanceType   NullResistanceTypeEnum
 	ResistanceDetail sql.NullString
+	Rpe              sql.NullString
+	Percent1rm       sql.NullString
+	Notes            sql.NullString
 	CreatedAt        sql.NullTime
 }

@@ -27,7 +27,7 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(cleanPath, "/")
 
 	// Ensure only /users endpoint is handled
-	if len(parts) != 2 || parts[1] != "users" {
+	if len(parts) != 2 {
 		http.Error(w, "Invalid URL - must be '/users'", http.StatusBadRequest)
 		return
 	}

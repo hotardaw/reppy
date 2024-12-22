@@ -36,19 +36,7 @@ CREATE TABLE workouts (
     UNIQUE(user_id, workout_date) -- to prevent >1 workouts/day/user, since implicitly on any given calendar day in the app 1 workout can occur
 );
 
-CREATE TABLE workout_exercises (
-    workout_exercise_id SERIAL PRIMARY KEY,
-    workout_id INTEGER REFERENCES workouts(workout_id),
-    exercise_name VARCHAR(100) NOT NULL,
-    sets INTEGER NOT NULL,
-    reps INTEGER NOT NULL,
-    resistance_type VARCHAR(50) NOT NULL,  -- 'weight', 'band', 'bodyweight', etc.
-    resistance_value INTEGER,              -- Optional; amt in lbs or band 'level'
-    resistance_detail VARCHAR(100),        -- Optional; 'red band', 'blue band', 'assisted', etc.
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- This is mostly going to be a reference table of exercises.
+-- This is intended as a reference table of exercises.
 -- Eventually we'll add a multi-valued user_id attribute to show which users have performed which exercises, and maybe we can use that for caching recently-performed exercises for users
 CREATE TABLE exercises (
     exercise_id SERIAL PRIMARY KEY,
@@ -57,19 +45,23 @@ CREATE TABLE exercises (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TYPE resistance_type_enum AS ENUM ('weight', 'band', 'bodyweight');
 CREATE TABLE workout_sets (
-    workout_id INTEGER REFERENCES workouts(workout_id),
-    exercise_id INTEGER REFERENCES exercises(exercise_id),
-    set_number SERIAL, -- auto-increment from 1
-    reps INTEGER, -- user can leave reps null intentionally - would mean user hasn't yet performed exercise (or skipped it and wanted to make it clear in their logs).
-    resistance_type VARCHAR(50) NOT NULL,
-    resistance_value INTEGER, -- another user-nullable field
-    resistance_detail VARCHAR(100),
+    workout_id INTEGER REFERENCES workouts(workout_id) NOT NULL,
+    exercise_id INTEGER REFERENCES exercises(exercise_id) NOT NULL,
+    set_number INTEGER NOT NULL,          -- We'll handle this in the application layer
+    reps INTEGER,                         -- Optional - filled in when performed
+    resistance_value INTEGER,             -- Optional - weight in lbs/kg
+    resistance_type resistance_type_enum, -- Optional - 'weight', 'band', etc.
+    resistance_detail VARCHAR(100),       -- Optional - band color, cable attachment, etc.
+    rpe DECIMAL(3,1),                     -- Optional
+    percent_1rm DECIMAL(4,1),             -- Optional, allows values like 77.5, 82.5, etc.
+    notes TEXT,                           -- Optional
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (workout_id, exercise_id, set_number)
 );
 
--- This will play a part in calculating weekly volume reports showing muscle groups over/underworked
+-- This will contribute to weekly volume reports showing muscle groups over/underworked
 CREATE TABLE muscles (
     muscle_id SERIAL PRIMARY KEY,
     muscle_name VARCHAR(50) NOT NULL UNIQUE,
@@ -84,6 +76,23 @@ CREATE TABLE exercise_muscles (
     involvement_level VARCHAR(20) NOT NULL,  -- 'Primary', 'Secondary', or 'Stabilizer'
     PRIMARY KEY (exercise_id, muscle_id)
 );
+
+
+
+
+CREATE VIEW exercise_one_rm AS
+SELECT 
+    w.user_id,
+    e.exercise_name,
+    MAX(ws.resistance_value / (1.0278 - 0.0278 * ws.reps)) as estimated_1rm
+FROM workouts w
+JOIN workout_sets ws ON w.workout_id = ws.workout_id
+JOIN exercises e ON ws.exercise_id = e.exercise_id
+WHERE ws.resistance_type = 'weight'
+  AND ws.resistance_value IS NOT NULL 
+  AND ws.reps IS NOT NULL
+GROUP BY w.user_id, e.exercise_name;
+
 
 -- For frequently queried fields
 CREATE INDEX idx_users_email ON users(email);

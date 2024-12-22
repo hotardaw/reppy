@@ -93,6 +93,9 @@ func main() {
 		<li>/user-profiles/{user_id}</li>
 		<li>/muscles</li>
 		<li>/exercises</li>
+		<h2>in progress:</h2>
+		<li>/workouts</li>
+		<li>/workouts/{workout_id}</li>
 		
 		</body></html>`)
 	}))
