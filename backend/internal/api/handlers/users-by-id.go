@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -14,7 +15,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Holds dependencies for user handlers
 type UserByIDHandler struct {
 	queries *sqlc.Queries
 }
@@ -30,7 +30,7 @@ func (h *UserByIDHandler) HandleUserByID(w http.ResponseWriter, r *http.Request)
 	parts := strings.Split(cleanPath, "/")
 
 	if len(parts) != 3 { // /users/{id} should have exactly 3 parts
-		http.Error(w, "Invalid URL format - must be '/users/{user_id}'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL format - must be '/users/{user_id}'", http.StatusBadRequest)
 		return
 	}
 
@@ -42,31 +42,30 @@ func (h *UserByIDHandler) HandleUserByID(w http.ResponseWriter, r *http.Request)
 	case http.MethodDelete:
 		h.DeleteUser(w, r, parts)
 	default:
-		http.Error(w, "Method not allowed - only GetUser, UpdateUser, and DeleteUser at path '/users/{user_id}'", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed - only GetUser, UpdateUser, and DeleteUser at path '/users/{user_id}'", http.StatusMethodNotAllowed)
 	}
 }
 
 func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.queries.GetUser(r.Context(), int32(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application-json")
-	json.NewEncoder(w).Encode(user)
+	response.SendSuccess(w, user)
 }
 
 func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
@@ -77,7 +76,7 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -90,7 +89,7 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 	if request.Password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 		if err != nil {
-			http.Error(w, "Failed to process password", http.StatusInternalServerError)
+			response.SendError(w, "Failed to process password", http.StatusInternalServerError)
 			return
 		}
 		params.PasswordHash = string(hashedPassword)
@@ -99,46 +98,43 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 	user, err := h.queries.UpdateUser(r.Context(), params)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			response.SendError(w, "User not found", http.StatusNotFound)
 			return
 		}
 		// handle dupes
 		if strings.Contains(err.Error(), "unique constraint") {
 			if strings.Contains(err.Error(), "email") {
-				http.Error(w, "Email already in use", http.StatusConflict)
+				response.SendError(w, "Email already in use", http.StatusConflict)
 			} else if strings.Contains(err.Error(), "username") {
-				http.Error(w, "Username already taken", http.StatusConflict)
+				response.SendError(w, "Username already taken", http.StatusConflict)
 			} else {
-				http.Error(w, "Duplicate value", http.StatusConflict)
+				response.SendError(w, "Duplicate value", http.StatusConflict)
 			}
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	response.SendSuccess(w, user)
 }
 
 func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.queries.DeleteUser(r.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			response.SendError(w, "User not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	response.SendSuccess(w, user, http.StatusOK) // Not StatusNoContent bc this is a soft delete
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go-fitsync/backend/internal/api/response"
 	"net/http"
 	"strings"
 	"time"
@@ -33,8 +34,6 @@ type JWTConfig struct {
 
 type Claims struct {
 	UserID    int64  `json:"user_id"`
-	Email     string `json:"email"`
-	Username  string `json:"username"`
 	TokenType string `json:"token_type"` // either "access" or "refresh"
 	jwt.RegisteredClaims
 }
@@ -48,13 +47,13 @@ func NewAuthMiddleware(config JWTConfig) *AuthMiddleware {
 }
 
 // generate access & refresh token
-func (am *AuthMiddleware) GenerateTokenPair(userID int64, email, username string) (accessToken, refreshToken string, err error) {
-	accessToken, err = am.generateToken(userID, email, username, "access", am.config.AccessSecret, am.config.AccessDuration)
+func (am *AuthMiddleware) GenerateTokenPair(userID int64) (accessToken, refreshToken string, err error) {
+	accessToken, err = am.generateToken(userID, "access", am.config.AccessSecret, am.config.AccessDuration)
 	if err != nil {
 		return "", "", fmt.Errorf("error generating access token: %w", err)
 	}
 
-	refreshToken, err = am.generateToken(userID, email, username, "refresh", am.config.RefreshSecret, am.config.RefreshDuration)
+	refreshToken, err = am.generateToken(userID, "refresh", am.config.RefreshSecret, am.config.RefreshDuration)
 	if err != nil {
 		return "", "", fmt.Errorf("error generating refresh token: %w", err)
 	}
@@ -62,16 +61,15 @@ func (am *AuthMiddleware) GenerateTokenPair(userID int64, email, username string
 	return accessToken, refreshToken, nil
 }
 
-func (am *AuthMiddleware) generateToken(userID int64, email, username, tokenType string, secret []byte, duration time.Duration) (string, error) {
+func (am *AuthMiddleware) generateToken(userID int64, tokenType string, secret []byte, duration time.Duration) (string, error) {
 	claims := Claims{
 		UserID:    userID,
-		Email:     email,
-		Username:  username,
-		TokenType: tokenType,
+		TokenType: tokenType, // access or refresh
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    am.config.Issuer,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)), // "exp"
+			IssuedAt:  jwt.NewNumericDate(time.Now()),               // "iat"
+			NotBefore: jwt.NewNumericDate(time.Now()),               // "nbf"
+			Issuer:    am.config.Issuer,                             // "iss"
 		},
 	}
 
@@ -113,7 +111,9 @@ func (am *AuthMiddleware) extractTokenFromHeader(r *http.Request) (string, error
 	}
 
 	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+	const AuthSchemeBearer = "bearer"
+
+	if len(parts) != 2 || strings.ToLower(parts[0]) != AuthSchemeBearer {
 		return "", ErrInvalidAuth
 	}
 
@@ -125,26 +125,34 @@ func (am *AuthMiddleware) AuthenticateJWT(next http.HandlerFunc) http.HandlerFun
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenString, err := am.extractTokenFromHeader(r)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			response.SendError(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		claims, err := am.validateToken(tokenString, am.config.AccessSecret)
 		if err != nil {
 			if err == ErrExpiredToken {
-				http.Error(w, "Token has expired", http.StatusUnauthorized)
+				response.SendError(w, "Token has expired", http.StatusUnauthorized)
 				return
 			}
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			response.SendError(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		if claims.TokenType != "access" {
-			http.Error(w, "Invalid token type", http.StatusUnauthorized)
+			response.SendError(w, "Invalid token type", http.StatusUnauthorized)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserClaimsKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
+}
+
+func GetUserIDFromContext(ctx context.Context) (int64, error) {
+	claims, ok := ctx.Value(UserClaimsKey).(*Claims)
+	if !ok {
+		return 0, errors.New("no claims in context")
+	}
+	return claims.UserID, nil
 }

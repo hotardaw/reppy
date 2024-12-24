@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -29,7 +31,7 @@ func (h *UserProfileByIDHandler) HandleUserProfilesByID(w http.ResponseWriter, r
 
 	// Ensure only /user-profiles/{id} endpoint is handled
 	if len(parts) != 3 {
-		http.Error(w, "Invalid URL format - must be '/user-profiles/{user_id}'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL format - must be '/user-profiles/{user_id}'", http.StatusBadRequest)
 		return
 	}
 
@@ -41,37 +43,33 @@ func (h *UserProfileByIDHandler) HandleUserProfilesByID(w http.ResponseWriter, r
 	case http.MethodDelete:
 		h.DeleteUserProfile(w, r, parts)
 	default:
-		http.Error(w, "Method not allowed - only GET, PUT, and DELETE", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed - only GET, PUT, and DELETE", http.StatusMethodNotAllowed)
 	}
 }
 
 func (h *UserProfileByIDHandler) GetUserProfile(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	userProfile, err := h.queries.GetUserProfile(r.Context(), sql.NullInt32{
-		Int32: int32(id),
-		Valid: true,
-	})
+	userProfile, err := h.queries.GetUserProfile(r.Context(), utils.ToNullInt32(id))
 	if err == sql.ErrNoRows {
-		http.Error(w, "User profile not found", http.StatusNotFound)
+		response.SendError(w, "User profile not found", http.StatusNotFound)
 		return
 	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userProfile)
+	response.SendSuccess(w, userProfile)
 }
 
 func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
@@ -85,84 +83,58 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	params := sqlc.UpdateUserProfileParams{
-		UserID: sql.NullInt32{
-			Int32: int32(id),
-			Valid: true,
-		},
-		FirstName: sql.NullString{
-			String: request.FirstName,
-			Valid:  true,
-		},
-		LastName: sql.NullString{
-			String: request.LastName,
-			Valid:  true,
-		},
-		HeightInches: sql.NullInt32{
-			Int32: request.HeightInches,
-			Valid: true,
-		},
-		WeightPounds: sql.NullInt32{
-			Int32: request.WeightPounds,
-			Valid: true,
-		},
-		Gender: sql.NullString{
-			String: request.Gender,
-			Valid:  true,
-		},
+		UserID:       utils.ToNullInt32(id),
+		FirstName:    utils.ToNullString(request.FirstName),
+		LastName:     utils.ToNullString(request.LastName),
+		HeightInches: utils.ToNullInt32(request.HeightInches),
+		WeightPounds: utils.ToNullInt32(request.WeightPounds),
+		Gender:       utils.ToNullString(request.Gender),
 	}
 
 	// Handle DOB, if provided
 	if request.DateOfBirth != "" {
 		dob, err := time.Parse("2006-01-02", request.DateOfBirth)
 		if err != nil {
-			http.Error(w, "Invalid date format for date_of_birth; use YYYY-MM-DD", http.StatusBadRequest)
+			response.SendError(w, "Invalid date format for date_of_birth; use YYYY-MM-DD", http.StatusBadRequest)
 			return
 		}
-		params.DateOfBirth = sql.NullTime{
-			Time:  dob,
-			Valid: true,
-		}
+		params.DateOfBirth = utils.ToNullTime(dob)
 	}
 
 	userProfile, err := h.queries.UpdateUserProfile(r.Context(), params)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			response.SendError(w, "User not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userProfile)
+	response.SendSuccess(w, userProfile)
 }
 
 func (h *UserProfileByIDHandler) DeleteUserProfile(w http.ResponseWriter, r *http.Request, parts []string) {
 	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	userProfile, err := h.queries.DeleteUserProfile(r.Context(), sql.NullInt32{
-		Int32: int32(id),
-		Valid: true,
-	})
+	userProfile, err := h.queries.DeleteUserProfile(r.Context(), utils.ToNullInt32(id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "User profile not found", http.StatusNotFound)
+			response.SendError(w, "User profile not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "Failed to delete user profile", http.StatusInternalServerError)
+		response.SendError(w, "Failed to delete user profile", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(userProfile)
+	response.SendSuccess(w, userProfile, http.StatusOK) // Not StatusNoContent bc this is a soft delete
 }

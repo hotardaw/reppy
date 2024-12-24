@@ -2,8 +2,8 @@ package seeds
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 )
 
@@ -108,10 +108,7 @@ func SeedExercises(queries *sqlc.Queries) error {
 	for _, exercise := range GetTestExercises() {
 		_, err := queries.CreateExercise(context.Background(), sqlc.CreateExerciseParams{
 			ExerciseName: exercise.ExerciseName,
-			Description: sql.NullString{
-				String: exercise.Description,
-				Valid:  true,
-			},
+			Description:  utils.ToNullString(exercise.Description),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to seed exercise %s: %v", exercise.ExerciseName, err)

@@ -2,8 +2,11 @@
 package handlers
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
+	"go-fitsync/backend/internal/api/middleware"
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -12,12 +15,14 @@ import (
 
 // GET, PATCH, DELETE w/ ID
 type WorkoutHandler struct {
-	queries *sqlc.Queries
+	queries   *sqlc.Queries
+	jwtSecret []byte
 }
 
-func NewWorkoutHandler(q *sqlc.Queries) *WorkoutHandler {
+func NewWorkoutHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutHandler {
 	return &WorkoutHandler{
-		queries: q,
+		queries:   q,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -26,19 +31,32 @@ func (h *WorkoutHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.Reque
 	parts := strings.Split(cleanPath, "/")
 
 	if len(parts) != 2 {
-		http.Error(w, "Invalid URL - must be '/workouts'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL - must be '/workouts'", http.StatusBadRequest)
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		h.GetWorkouts(w, r)
+		h.GetAllWorkoutsForUser(w, r)
 	case http.MethodPost:
 		h.CreateWorkout(w, r)
 	}
 }
 
-func (h *WorkoutHandler) GetWorkouts(w http.ResponseWriter, r *http.Request) {}
+func (h *WorkoutHandler) GetAllWorkoutsForUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	workouts, err := h.queries.GetAllWorkoutsForUser(context.Background(), utils.ToNullInt32(userID))
+	if err != nil {
+		response.SendError(w, "Failed to get all user workouts", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, workouts)
+}
 
 func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	var request struct {
@@ -46,21 +64,17 @@ func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	workout, err := h.queries.CreateWorkout(r.Context(), sqlc.CreateWorkoutParams{
-		Title: sql.NullString{
-			String: request.Title,
-			Valid:  true,
-		},
+		Title: utils.ToNullString(request.Title),
 	})
 	if err != nil {
-		http.Error(w, "Failed to create workout", http.StatusInternalServerError)
+		response.SendError(w, "Failed to create workout", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(workout)
+	response.SendSuccess(w, workout, http.StatusCreated)
 }

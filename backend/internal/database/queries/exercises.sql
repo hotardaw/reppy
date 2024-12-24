@@ -24,9 +24,10 @@ SET exercise_name = $2, description = $3
 WHERE exercise_id = $1
 RETURNING *;
 
--- name: DeleteExercise :exec
+-- name: DeleteExercise :one
 DELETE FROM exercises 
-WHERE exercise_id = $1;
+WHERE exercise_id = $1
+RETURNING *;
 
 -- name: ExerciseExists :one
 SELECT EXISTS(

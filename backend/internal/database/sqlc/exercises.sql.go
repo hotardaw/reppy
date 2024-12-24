@@ -36,14 +36,22 @@ func (q *Queries) CreateExercise(ctx context.Context, arg CreateExerciseParams) 
 	return i, err
 }
 
-const deleteExercise = `-- name: DeleteExercise :exec
+const deleteExercise = `-- name: DeleteExercise :one
 DELETE FROM exercises 
 WHERE exercise_id = $1
+RETURNING exercise_id, exercise_name, description, created_at
 `
 
-func (q *Queries) DeleteExercise(ctx context.Context, exerciseID int32) error {
-	_, err := q.db.ExecContext(ctx, deleteExercise, exerciseID)
-	return err
+func (q *Queries) DeleteExercise(ctx context.Context, exerciseID int32) (Exercise, error) {
+	row := q.db.QueryRowContext(ctx, deleteExercise, exerciseID)
+	var i Exercise
+	err := row.Scan(
+		&i.ExerciseID,
+		&i.ExerciseName,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const exerciseExists = `-- name: ExerciseExists :one

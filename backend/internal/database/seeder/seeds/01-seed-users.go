@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 	"time"
 
@@ -74,10 +75,7 @@ func SeedUsers(queries *sqlc.Queries) error {
 		if user.FirstName != "" || user.LastName != "" || !user.DOB.IsZero() || user.Gender != "" || user.Height != 0 || user.Weight != 0 {
 
 			_, err = queries.CreateUserProfile(context.Background(), sqlc.CreateUserProfileParams{
-				UserID: sql.NullInt32{
-					Int32: createdUser.UserID,
-					Valid: true,
-				},
+				UserID: utils.ToNullInt32(createdUser.UserID),
 				FirstName: sql.NullString{
 					String: user.FirstName,
 					Valid:  user.FirstName != "",

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -24,7 +25,7 @@ func (h *MuscleHandler) HandleMuscles(w http.ResponseWriter, r *http.Request) {
 
 	// Make sure only /muscles endpoint is handled
 	if len(parts) != 2 || parts[1] != "muscles" {
-		http.Error(w, "Invalid URL - must be '/muscles'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL - must be '/muscles'", http.StatusBadRequest)
 		return
 	}
 
@@ -41,18 +42,17 @@ func (h *MuscleHandler) HandleMuscles(w http.ResponseWriter, r *http.Request) {
 func (h *MuscleHandler) GetMuscle(w http.ResponseWriter, r *http.Request) {
 	muscleName := r.URL.Query().Get("name") // '/muscles?name=Biceps%20Brachii'
 	if muscleName == "" {
-		http.Error(w, "Muscle name is required for GET requests", http.StatusBadRequest)
+		response.SendError(w, "Muscle name is required for GET requests", http.StatusBadRequest)
 		return
 	}
 
 	muscle, err := h.queries.GetMuscle(r.Context(), muscleName)
 	if err != nil {
-		http.Error(w, "Muscle not found", http.StatusInternalServerError)
+		response.SendError(w, "Muscle not found", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(muscle)
+	response.SendSuccess(w, muscle)
 }
 
 func (h *MuscleHandler) CreateMuscle(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func (h *MuscleHandler) CreateMuscle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -71,26 +71,25 @@ func (h *MuscleHandler) CreateMuscle(w http.ResponseWriter, r *http.Request) {
 		MuscleGroup: request.MuscleGroup,
 	})
 	if err != nil {
-		http.Error(w, "Failed to create muscle", http.StatusInternalServerError)
+		response.SendError(w, "Failed to create muscle", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(muscle)
+	response.SendSuccess(w, muscle, http.StatusCreated)
 }
 
 func (h *MuscleHandler) DeleteMuscle(w http.ResponseWriter, r *http.Request) {
 	muscleName := r.URL.Query().Get("name") // '/muscles?name=Biceps%20Brachii'
 	if muscleName == "" {
-		http.Error(w, "Muscle name is required for DELETE requests", http.StatusBadRequest)
+		response.SendError(w, "Muscle name is required for DELETE requests", http.StatusBadRequest)
 		return
 	}
 
-	err := h.queries.DeleteMuscle(r.Context(), muscleName)
+	muscle, err := h.queries.DeleteMuscle(r.Context(), muscleName)
 	if err != nil {
-		http.Error(w, "Failed to delete muscle", http.StatusInternalServerError)
+		response.SendError(w, "Failed to delete muscle", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response.SendSuccess(w, muscle, http.StatusNoContent)
 }

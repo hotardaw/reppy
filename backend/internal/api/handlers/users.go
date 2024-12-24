@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -28,7 +29,7 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure only /users endpoint is handled
 	if len(parts) != 2 {
-		http.Error(w, "Invalid URL - must be '/users'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL - must be '/users'", http.StatusBadRequest)
 		return
 	}
 
@@ -38,7 +39,7 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		h.CreateUser(w, r)
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -50,13 +51,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "Failed to process password", http.StatusInternalServerError)
+		response.SendError(w, "Failed to process password", http.StatusInternalServerError)
 		return
 	}
 
@@ -70,31 +71,29 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		// handle dupe emails/usernames
 		if strings.Contains(err.Error(), "unique constraint") {
 			if strings.Contains(err.Error(), "email") {
-				http.Error(w, "Email already in use", http.StatusConflict)
+				response.SendError(w, "Email already in use", http.StatusConflict)
 			} else if strings.Contains(err.Error(), "username") {
-				http.Error(w, "Username already taken", http.StatusConflict)
+				response.SendError(w, "Username already taken", http.StatusConflict)
 			} else {
-				http.Error(w, "Duplicate value", http.StatusConflict)
+				response.SendError(w, "Duplicate value", http.StatusConflict)
 			}
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	response.SendSuccess(w, user, http.StatusCreated)
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request, parts []string) {
 	users, err := h.queries.GetAllUsers(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	response.SendSuccess(w, users)
 }
 
 /*

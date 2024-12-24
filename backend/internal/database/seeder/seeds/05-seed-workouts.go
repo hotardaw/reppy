@@ -2,8 +2,8 @@ package seeds
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 	"time"
 )
@@ -32,39 +32,12 @@ func GetTestWorkouts() []TestWorkouts {
 	}
 }
 
-/*
--- CREATE: Insert a new workout
--- name: CreateWorkout :one
-
--- READ: Get all workouts for a specific user
--- name: GetAllWorkoutsForUser :many
-
--- READ: Get a specific workout by ID
--- name: GetWorkoutByID :one
-
--- READ: Get workouts within a date range for a user
--- name: GetWorkoutsWithinDateRange :many
-
--- UPDATE: Modify an existing workout
--- name: UpdateWorkout :one
-
--- DELETE: Remove a workout
--- name: DeleteWorkout :one
-
-*/
-
 func SeedWorkouts(queries *sqlc.Queries) error {
 	for _, workouts := range GetTestWorkouts() {
 		_, err := queries.CreateWorkout(context.Background(), sqlc.CreateWorkoutParams{
-			UserID: sql.NullInt32{
-				Int32: workouts.UserID,
-				Valid: true,
-			},
+			UserID:      utils.ToNullInt32(workouts.UserID),
 			WorkoutDate: workouts.WorkoutDate,
-			Title: sql.NullString{
-				String: workouts.Title,
-				Valid:  true,
-			},
+			Title:       utils.ToNullString(workouts.Title),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to seed workout for UserID %d and WorkoutDate %v: %v", workouts.UserID, workouts.WorkoutDate, err)

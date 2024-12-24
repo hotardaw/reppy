@@ -1,15 +1,22 @@
+// TODO: add
+// - rate limits for login
+// - request body size limit to prevent mem exhaustion
+// - request timeout contexts to prevent resource lockup/prevent DOS
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"go-fitsync/backend/internal/api/middleware"
+	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/database/sqlc"
 	"log"
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -41,122 +48,97 @@ type RefreshRequest struct {
 }
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	// Context times out after 10s
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel() // Always cancel to clean up resources
+
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
 	if cleanPath != "/login" {
-		http.Error(w, "Invalid path", http.StatusNotFound)
+		response.SendError(w, "Invalid path", http.StatusNotFound)
 		return
 	}
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	var request LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// get user from db
-	user, err := h.queries.GetUserByEmail(r.Context(), req.Email)
+	user, err := h.queries.GetUserByEmail(ctx, request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			response.SendError(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		response.SendError(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password)); err != nil {
+		response.SendError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	// generate tokens
 	accessToken, refreshToken, err := h.auth.GenerateTokenPair(
 		int64(user.UserID),
-		user.Email,
-		user.Username,
 	)
 	if err != nil {
-		http.Error(w, "Failed to generate tokens", http.StatusInternalServerError)
+		response.SendError(w, "Failed to generate tokens", http.StatusInternalServerError)
 		return
 	}
 
 	// update last login
-	if err := h.queries.UpdateLastLogin(r.Context(), user.UserID); err != nil {
+	if err := h.queries.UpdateLastLogin(ctx, user.UserID); err != nil {
 		// log err but don't fail the request
 		log.Printf("Failed to update last login: %v", err)
 	}
 
-	response := TokenResponse{
+	responseData := TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-
-	/*
-		check if POST method
-		parse JSON req body
-		get user from db via email
-		compare password hash
-		gen token pair
-		update last login
-		return tokens as JSON resp
-	*/
+	response.SendSuccess(w, responseData)
 }
 
 func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	var request RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// validate refresh token
-	claims, err := h.auth.ValidateRefreshToken(req.RefreshToken)
+	claims, err := h.auth.ValidateRefreshToken(request.RefreshToken)
 	if err != nil {
-		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		response.SendError(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
-	// gen new token pair
 	accessToken, refreshToken, err := h.auth.GenerateTokenPair(
 		claims.UserID,
-		claims.Email,
-		claims.Username,
 	)
 	if err != nil {
-		http.Error(w, "Failed to generate tokens", http.StatusInternalServerError)
+		response.SendError(w, "Failed to generate tokens", http.StatusInternalServerError)
 		return
 	}
 
-	response := TokenResponse{
+	responseData := TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	response.SendSuccess(w, responseData)
 }
-
-/*
-In main.go:
-- Create auth middleware instance with config
-- Create auth handler instance
-- Add login and refresh routes to mux
-
-SQL queries needed:
-- Get user by email
-- Update last login timestamp
-*/

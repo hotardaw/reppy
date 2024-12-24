@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
@@ -24,7 +25,7 @@ func (h *WorkoutByIDHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.R
 	parts := strings.Split(cleanPath, "/")
 
 	if len(parts) != 3 {
-		http.Error(w, "Invalid URL - must be '/workouts/{workout_id}'", http.StatusBadRequest)
+		response.SendError(w, "Invalid URL - must be '/workouts/{workout_id}'", http.StatusBadRequest)
 		return
 	}
 
