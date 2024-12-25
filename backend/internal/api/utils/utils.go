@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// TODO: upgrade these to accept a variadic input for valid-ness checking for instances like "01-seed-users.go"
+// TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"
 
 // Used in APIs' SQLc params section for compact conversions.
 func ToNullString(s string) sql.NullString {
@@ -48,33 +48,34 @@ func ToNullTime(t time.Time) sql.NullTime {
 	}
 }
 
-func intPtr(i int32) *int32         { return &i }
-func strPtr(s string) *string       { return &s }
-func float32Ptr(f float32) *float32 { return &f }
+// Used in APIs with optional fields that utilize pointers
+func IntPtr(i int32) *int32         { return &i }
+func StrPtr(s string) *string       { return &s }
+func Float32Ptr(f float32) *float32 { return &f }
 
 // For converting pointers to SQL null types
-func nullIntFromIntPtr(i *int32) sql.NullInt32 {
+func NullIntFromIntPtr(i *int32) sql.NullInt32 {
 	if i == nil {
 		return sql.NullInt32{}
 	}
 	return sql.NullInt32{Int32: *i, Valid: true}
 }
 
-func nullStringFromStringPtr(s *string) sql.NullString {
+func NullStringFromStringPtr(s *string) sql.NullString {
 	if s == nil {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
 }
 
-func nullStringFromFloat32Ptr(f *float32) sql.NullString {
+func NullStringFromFloat32Ptr(f *float32) sql.NullString {
 	if f == nil {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: fmt.Sprintf("%.1f", *f), Valid: true}
 }
 
-func nullResistanceTypeFromPtr(s *string) sqlc.NullResistanceTypeEnum {
+func NullResistanceTypeFromPtr(s *string) sqlc.NullResistanceTypeEnum {
 	if s == nil {
 		return sqlc.NullResistanceTypeEnum{}
 	}
