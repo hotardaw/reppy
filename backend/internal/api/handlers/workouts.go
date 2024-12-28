@@ -47,6 +47,7 @@ func (h *WorkoutHandler) GetAllWorkoutsForUser(w http.ResponseWriter, r *http.Re
 	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	workouts, err := h.queries.GetAllWorkoutsForUser(context.Background(), utils.ToNullInt32(userID))
@@ -68,8 +69,15 @@ func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	workout, err := h.queries.CreateWorkout(r.Context(), sqlc.CreateWorkoutParams{
-		Title: utils.ToNullString(request.Title),
+		UserID: utils.ToNullInt32(userID),
+		Title:  utils.ToNullString(request.Title),
 	})
 	if err != nil {
 		response.SendError(w, "Failed to create workout", http.StatusInternalServerError)

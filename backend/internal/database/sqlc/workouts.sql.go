@@ -136,54 +136,35 @@ func (q *Queries) GetWorkoutByID(ctx context.Context, workoutID int32) (GetWorko
 	return i, err
 }
 
-const getWorkoutsWithinDateRange = `-- name: GetWorkoutsWithinDateRange :many
+const getWorkoutByUserIDAndDate = `-- name: GetWorkoutByUserIDAndDate :one
 SELECT workout_id, workout_date, title, created_at
 FROM workouts
-WHERE user_id = $1 
-AND workout_date BETWEEN $2 AND $3
-ORDER BY workout_date DESC
+WHERE user_id = $1 AND workout_date = $2
 `
 
-type GetWorkoutsWithinDateRangeParams struct {
-	UserID        sql.NullInt32
-	WorkoutDate   time.Time
-	WorkoutDate_2 time.Time
+type GetWorkoutByUserIDAndDateParams struct {
+	UserID      sql.NullInt32
+	WorkoutDate time.Time
 }
 
-type GetWorkoutsWithinDateRangeRow struct {
+type GetWorkoutByUserIDAndDateRow struct {
 	WorkoutID   int32
 	WorkoutDate time.Time
 	Title       sql.NullString
 	CreatedAt   sql.NullTime
 }
 
-// READ: Get workouts within a date range for a user
-func (q *Queries) GetWorkoutsWithinDateRange(ctx context.Context, arg GetWorkoutsWithinDateRangeParams) ([]GetWorkoutsWithinDateRangeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getWorkoutsWithinDateRange, arg.UserID, arg.WorkoutDate, arg.WorkoutDate_2)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetWorkoutsWithinDateRangeRow
-	for rows.Next() {
-		var i GetWorkoutsWithinDateRangeRow
-		if err := rows.Scan(
-			&i.WorkoutID,
-			&i.WorkoutDate,
-			&i.Title,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+// READ: Get workout from a date (client-side) & userID (from context)
+func (q *Queries) GetWorkoutByUserIDAndDate(ctx context.Context, arg GetWorkoutByUserIDAndDateParams) (GetWorkoutByUserIDAndDateRow, error) {
+	row := q.db.QueryRowContext(ctx, getWorkoutByUserIDAndDate, arg.UserID, arg.WorkoutDate)
+	var i GetWorkoutByUserIDAndDateRow
+	err := row.Scan(
+		&i.WorkoutID,
+		&i.WorkoutDate,
+		&i.Title,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const updateWorkout = `-- name: UpdateWorkout :one

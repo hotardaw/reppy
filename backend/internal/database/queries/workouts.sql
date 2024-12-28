@@ -17,20 +17,18 @@ SELECT workout_id, user_id, workout_date, title, created_at
 FROM workouts
 WHERE workout_id = $1;
 
--- READ: Get workouts within a date range for a user
--- name: GetWorkoutsWithinDateRange :many
+-- READ: Get workout from a date (client-side) & userID (from context)
+-- name: GetWorkoutByUserIDAndDate :one
 SELECT workout_id, workout_date, title, created_at
 FROM workouts
-WHERE user_id = $1 
-AND workout_date BETWEEN $2 AND $3
-ORDER BY workout_date DESC;
+WHERE user_id = $1 AND workout_date = $2;
 
 -- UPDATE: Modify an existing workout
 -- name: UpdateWorkout :one
 UPDATE workouts
 SET workout_date = $1,
-    title = $2,
-    updated_at = CURRENT_TIMESTAMP
+  title = $2,
+  updated_at = CURRENT_TIMESTAMP
 WHERE workout_id = $3 
 AND user_id = $4
 RETURNING workout_id, workout_date, title, updated_at;

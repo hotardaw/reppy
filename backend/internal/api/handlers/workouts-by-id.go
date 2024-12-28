@@ -2,11 +2,16 @@
 package handlers
 
 import (
+	"database/sql"
+	"encoding/json"
+	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strings"
+	"time"
 )
 
 // GET, PATCH, DELETE w/ ID
@@ -39,6 +44,53 @@ func (h *WorkoutByIDHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (h *WorkoutByIDHandler) GetWorkoutByID(w http.ResponseWriter, r *http.Request)    {}
-func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Request) {}
+func (h *WorkoutByIDHandler) GetWorkoutByID(w http.ResponseWriter, r *http.Request) {}
+
+func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	workoutID, err := utils.GetIDFromPath(r.URL.Path)
+	if err != nil {
+		response.SendError(w, "Invalid workout ID", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		WorkoutDate time.Time `json:"clientworkoutdate"`
+		Title       string    `json:"workouttitle"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	utcTime, err := utils.FromClientTimezoneToUTC(request.WorkoutDate, r)
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	params := sqlc.UpdateWorkoutParams{
+		WorkoutDate: utcTime,
+		Title:       utils.ToNullString(request.Title),
+		WorkoutID:   workoutID,
+		UserID:      utils.ToNullInt32(userID),
+	}
+
+	workout, err := h.queries.UpdateWorkout(r.Context(), params)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.SendError(w, "Workout not found", http.StatusNotFound)
+			return
+		}
+		response.SendError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, workout)
+}
 func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Request) {}

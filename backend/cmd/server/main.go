@@ -92,7 +92,7 @@ func main() {
 		loggingMiddleware,
 		authMiddleware.AuthenticateJWT,
 	))
-	mux.HandleFunc("/user-profiles", chainMiddleware( // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/user-profiles/", chainMiddleware( // GET, PATCH, DELETE w/ ID
 		userProfileByIDHandler.HandleUserProfilesByID,
 		timeoutMiddleware,
 		loggingMiddleware,

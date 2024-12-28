@@ -4,10 +4,49 @@ import (
 	"database/sql"
 	"fmt"
 	"go-fitsync/backend/internal/database/sqlc"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"
+
+// Used to parse client's timezone from the custom HTTP header "X-User-Timezone" and convert the client's timezone to UTC, maintaining the same calendar date in client's time.
+func FromClientTimezoneToUTC(clientTime time.Time, r *http.Request) (time.Time, error) {
+	clientTZ := r.Header.Get("X-User-Timezone")
+	if clientTZ == "" {
+		clientTZ = "UTC" // fallback
+	}
+
+	location, err := time.LoadLocation(clientTZ)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid timezone: %w", err)
+	}
+
+	utcTime := time.Date(
+		clientTime.Year(),
+		clientTime.Month(),
+		clientTime.Day(),
+		0, 0, 0, 0,
+		location,
+	)
+
+	return utcTime, nil
+}
+
+func GetIDFromPath(path string) (int32, error) {
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		return 0, fmt.Errorf("invalid path")
+	}
+
+	id, err := strconv.ParseInt(parts[len(parts)-1], 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(id), nil
+}
 
 // Used in APIs' SQLc params section for compact conversions.
 func ToNullString(s string) sql.NullString {
