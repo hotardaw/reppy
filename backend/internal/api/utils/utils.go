@@ -12,7 +12,7 @@ import (
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"
 
-// Used to parse client's timezone from the custom HTTP header "X-User-Timezone" and convert the client's timezone to UTC, maintaining the same calendar date in client's time.
+// Used to parse client's timezone from the custom HTTP header "X-User-Timezone" and convert the client's timezone to UTC, maintaining the same calendar date in client's time. Client must still send its current time in the request body.
 func FromClientTimezoneToUTC(clientTime time.Time, r *http.Request) (time.Time, error) {
 	clientTZ := r.Header.Get("X-User-Timezone")
 	if clientTZ == "" {

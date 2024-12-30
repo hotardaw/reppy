@@ -44,6 +44,7 @@ func (h *UserProfileByIDHandler) HandleUserProfilesByID(w http.ResponseWriter, r
 		h.DeleteUserProfile(w, r, parts)
 	default:
 		response.SendError(w, "Method not allowed - only GET, PUT, and DELETE", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
@@ -96,7 +97,7 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 		Gender:       utils.ToNullString(request.Gender),
 	}
 
-	// Handle DOB, if provided
+	// If provided, handle DOB
 	if request.DateOfBirth != "" {
 		dob, err := time.Parse("2006-01-02", request.DateOfBirth)
 		if err != nil {

@@ -21,6 +21,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	requestTimeout = 10 * time.Second
+	maxBodySize    = 1 * 1024 * 1024 // 1mb
+)
+
 type AuthHandler struct {
 	queries *sqlc.Queries
 	auth    *middleware.AuthMiddleware
@@ -49,7 +54,7 @@ type RefreshRequest struct {
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// Context times out after 10s
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel() // Always cancel to clean up resources
 
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
@@ -63,13 +68,19 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+
 	var request LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// get user from db
+	if request.Email == "" || request.Password == "" {
+		response.SendError(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+
 	user, err := h.queries.GetUserByEmail(ctx, request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -80,13 +91,11 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password)); err != nil {
 		response.SendError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// generate tokens
 	accessToken, refreshToken, err := h.auth.GenerateTokenPair(
 		int64(user.UserID),
 	)
@@ -110,14 +119,27 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
+	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
+	if cleanPath != "/refresh" {
+		response.SendError(w, "Invalid path", http.StatusNotFound)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+
 	var request RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(request.RefreshToken) < 10 {
+		response.SendError(w, "Invalid refresh token format", http.StatusBadRequest)
 		return
 	}
 

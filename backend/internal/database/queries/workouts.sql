@@ -12,10 +12,10 @@ WHERE user_id = $1
 ORDER BY workout_date DESC;
 
 -- READ: Get a specific workout by ID
--- name: GetWorkoutByID :one
+-- name: GetWorkoutByIDForUser :one
 SELECT workout_id, user_id, workout_date, title, created_at
 FROM workouts
-WHERE workout_id = $1;
+WHERE workout_id = $1 AND user_id = $2;
 
 -- READ: Get workout from a date (client-side) & userID (from context)
 -- name: GetWorkoutByUserIDAndDate :one
@@ -29,13 +29,11 @@ UPDATE workouts
 SET workout_date = $1,
   title = $2,
   updated_at = CURRENT_TIMESTAMP
-WHERE workout_id = $3 
-AND user_id = $4
+WHERE workout_id = $3 AND user_id = $4
 RETURNING workout_id, workout_date, title, updated_at;
 
 -- DELETE: Remove a workout
 -- name: DeleteWorkout :one
 DELETE FROM workouts
-WHERE workout_id = $1 
-AND user_id = $2
+WHERE workout_id = $1 AND user_id = $2
 RETURNING workout_id;

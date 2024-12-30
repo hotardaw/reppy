@@ -108,13 +108,18 @@ func (q *Queries) GetAllWorkoutsForUser(ctx context.Context, userID sql.NullInt3
 	return items, nil
 }
 
-const getWorkoutByID = `-- name: GetWorkoutByID :one
+const getWorkoutByIDForUser = `-- name: GetWorkoutByIDForUser :one
 SELECT workout_id, user_id, workout_date, title, created_at
 FROM workouts
-WHERE workout_id = $1
+WHERE workout_id = $1 AND user_id = $2
 `
 
-type GetWorkoutByIDRow struct {
+type GetWorkoutByIDForUserParams struct {
+	WorkoutID int32
+	UserID    sql.NullInt32
+}
+
+type GetWorkoutByIDForUserRow struct {
 	WorkoutID   int32
 	UserID      sql.NullInt32
 	WorkoutDate time.Time
@@ -123,9 +128,9 @@ type GetWorkoutByIDRow struct {
 }
 
 // READ: Get a specific workout by ID
-func (q *Queries) GetWorkoutByID(ctx context.Context, workoutID int32) (GetWorkoutByIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getWorkoutByID, workoutID)
-	var i GetWorkoutByIDRow
+func (q *Queries) GetWorkoutByIDForUser(ctx context.Context, arg GetWorkoutByIDForUserParams) (GetWorkoutByIDForUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getWorkoutByIDForUser, arg.WorkoutID, arg.UserID)
+	var i GetWorkoutByIDForUserRow
 	err := row.Scan(
 		&i.WorkoutID,
 		&i.UserID,
@@ -170,8 +175,8 @@ func (q *Queries) GetWorkoutByUserIDAndDate(ctx context.Context, arg GetWorkoutB
 const updateWorkout = `-- name: UpdateWorkout :one
 UPDATE workouts
 SET workout_date = $1,
-    title = $2,
-    updated_at = CURRENT_TIMESTAMP
+  title = $2,
+  updated_at = CURRENT_TIMESTAMP
 WHERE workout_id = $3 
 AND user_id = $4
 RETURNING workout_id, workout_date, title, updated_at

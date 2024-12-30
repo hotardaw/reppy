@@ -38,6 +38,7 @@ func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.R
 		h.CreateUserProfile(w, r)
 	default:
 		response.SendError(w, "Method not allowed - only GET and POST allowed at /user-profiles", http.StatusMethodNotAllowed)
+		return
 	}
 }
 

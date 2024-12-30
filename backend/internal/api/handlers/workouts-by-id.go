@@ -36,15 +36,47 @@ func (h *WorkoutByIDHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.R
 
 	switch r.Method {
 	case http.MethodGet:
-		h.GetWorkoutByID(w, r)
+		h.GetWorkoutByIDForUser(w, r)
 	case http.MethodPatch:
 		h.UpdateWorkoutByID(w, r)
 	case http.MethodDelete:
 		h.DeleteWorkoutByID(w, r)
+	default:
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
-func (h *WorkoutByIDHandler) GetWorkoutByID(w http.ResponseWriter, r *http.Request) {}
+func (h *WorkoutByIDHandler) GetWorkoutByIDForUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	workoutID, err := utils.GetIDFromPath(r.URL.Path)
+	if err != nil {
+		response.SendError(w, "Invalid workout ID", http.StatusBadRequest)
+		return
+	}
+
+	params := sqlc.GetWorkoutByIDForUserParams{
+		WorkoutID: workoutID,
+		UserID:    utils.ToNullInt32(userID),
+	}
+
+	workout, err := h.queries.GetWorkoutByIDForUser(r.Context(), params)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.SendError(w, "Workout not found", http.StatusNotFound)
+			return
+		}
+		response.SendError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, workout)
+}
 
 func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r.Context())
@@ -93,4 +125,37 @@ func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Re
 
 	response.SendSuccess(w, workout)
 }
-func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Request) {}
+
+func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	workoutID, err := utils.GetIDFromPath(r.URL.Path)
+	if err != nil {
+		response.SendError(w, "Invalid workout ID", http.StatusBadRequest)
+		return
+	}
+
+	params := sqlc.DeleteWorkoutParams{
+		UserID:    utils.ToNullInt32(userID),
+		WorkoutID: workoutID,
+	}
+
+	deletedWorkoutID, err := h.queries.DeleteWorkout(r.Context(), params)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.SendError(w, "Workout not found", http.StatusNotFound)
+			return
+		}
+		response.SendError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, map[string]interface{}{
+		"message": "Workout deleted successfully",
+		"id":      int(deletedWorkoutID),
+	})
+}
