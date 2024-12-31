@@ -8,10 +8,35 @@ import (
 )
 
 func cleanTestData(queries *sqlc.Queries) error {
-	// delete all user profiles first bc of foreign key constraints
-	err := queries.DeleteAllUserProfiles(context.Background())
+	// start by deleting tables with the most FDs (workout sets), then work inwards toward those depended on most often (users)
+	err := queries.DeleteAllWorkoutSets(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to clean user profiles: %v", err)
+		return fmt.Errorf("failed to clean workout-sets: %v", err)
+	}
+
+	err = queries.DeleteAllWorkouts(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean workouts: %v", err)
+	}
+
+	err = queries.DeleteAllUserProfiles(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean user-profiles: %v", err)
+	}
+
+	err = queries.DeleteAllExerciseMuscles(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean exercise-muscles: %v", err)
+	}
+
+	err = queries.DeleteAllExercises(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean exercises: %v", err)
+	}
+
+	err = queries.DeleteAllMuscles(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to clean muscles: %v", err)
 	}
 
 	err = queries.DeleteAllUsers(context.Background())
@@ -19,8 +44,6 @@ func cleanTestData(queries *sqlc.Queries) error {
 		return fmt.Errorf("failed to clean users: %v", err)
 	}
 	return nil
-
-	// add DeleteAllExercises, DeleteAllWorkouts, etc.
 }
 
 func shouldSeed(queries *sqlc.Queries) (bool, error) {
@@ -50,7 +73,7 @@ func SeedTestData(queries *sqlc.Queries) error {
 	}
 
 	/*
-	** below starts seed user logic:
+	** seeding begins
 	 */
 
 	if err = seeds.SeedUsers(queries); err != nil {
@@ -73,7 +96,9 @@ func SeedTestData(queries *sqlc.Queries) error {
 		return fmt.Errorf("failed to seed workouts: %v", err)
 	}
 
-	// workout sets
+	if err = seeds.SeedWorkoutSets(queries); err != nil {
+		return fmt.Errorf("failed to seed workouts-sets: %v", err)
+	}
 
 	if err := markSeedComplete(queries); err != nil {
 		return fmt.Errorf("failed to mark seeding complete: %v", err)

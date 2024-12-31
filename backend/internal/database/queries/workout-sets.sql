@@ -50,3 +50,6 @@ AND set_number = $3;
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
 AND exercise_id = $2;
+
+-- name: DeleteAllWorkoutSets :exec
+DELETE FROM workout_sets;

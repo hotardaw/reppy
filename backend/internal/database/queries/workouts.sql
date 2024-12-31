@@ -37,3 +37,7 @@ RETURNING workout_id, workout_date, title, updated_at;
 DELETE FROM workouts
 WHERE workout_id = $1 AND user_id = $2
 RETURNING workout_id;
+
+-- DELETE: Used exclusively in seeder.
+-- name: DeleteAllWorkouts :exec
+DELETE FROM workouts;

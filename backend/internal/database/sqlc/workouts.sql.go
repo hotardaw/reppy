@@ -45,10 +45,19 @@ func (q *Queries) CreateWorkout(ctx context.Context, arg CreateWorkoutParams) (C
 	return i, err
 }
 
+const deleteAllWorkouts = `-- name: DeleteAllWorkouts :exec
+DELETE FROM workouts
+`
+
+// DELETE: Used exclusively in seeder.
+func (q *Queries) DeleteAllWorkouts(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllWorkouts)
+	return err
+}
+
 const deleteWorkout = `-- name: DeleteWorkout :one
 DELETE FROM workouts
-WHERE workout_id = $1 
-AND user_id = $2
+WHERE workout_id = $1 AND user_id = $2
 RETURNING workout_id
 `
 
@@ -177,8 +186,7 @@ UPDATE workouts
 SET workout_date = $1,
   title = $2,
   updated_at = CURRENT_TIMESTAMP
-WHERE workout_id = $3 
-AND user_id = $4
+WHERE workout_id = $3 AND user_id = $4
 RETURNING workout_id, workout_date, title, updated_at
 `
 

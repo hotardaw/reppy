@@ -36,6 +36,15 @@ func (q *Queries) CreateExercise(ctx context.Context, arg CreateExerciseParams) 
 	return i, err
 }
 
+const deleteAllExercises = `-- name: DeleteAllExercises :exec
+DELETE FROM exercises
+`
+
+func (q *Queries) DeleteAllExercises(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllExercises)
+	return err
+}
+
 const deleteExercise = `-- name: DeleteExercise :one
 DELETE FROM exercises 
 WHERE exercise_id = $1

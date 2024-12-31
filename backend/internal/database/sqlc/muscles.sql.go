@@ -32,6 +32,15 @@ func (q *Queries) CreateMuscle(ctx context.Context, arg CreateMuscleParams) (Mus
 	return i, err
 }
 
+const deleteAllMuscles = `-- name: DeleteAllMuscles :exec
+DELETE FROM muscles
+`
+
+func (q *Queries) DeleteAllMuscles(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllMuscles)
+	return err
+}
+
 const deleteMuscle = `-- name: DeleteMuscle :one
 DELETE FROM muscles
 WHERE muscle_name = $1

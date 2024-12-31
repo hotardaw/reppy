@@ -114,9 +114,16 @@ func NullStringFromFloat32Ptr(f *float32) sql.NullString {
 	return sql.NullString{String: fmt.Sprintf("%.1f", *f), Valid: true}
 }
 
-func NullResistanceTypeFromPtr(s *string) sqlc.NullResistanceTypeEnum {
+func NullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum {
 	if s == nil {
-		return sqlc.NullResistanceTypeEnum{}
+		return sqlc.NullResistanceTypeEnum{
+			Valid: false,
+		}
 	}
-	return sqlc.NullResistanceTypeEnum{ResistanceTypeEnum: sqlc.ResistanceTypeEnum(*s), Valid: true}
+	return sqlc.NullResistanceTypeEnum{
+		ResistanceTypeEnum: sqlc.ResistanceTypeEnum(*s),
+		Valid:              true,
+	}
 }
+
+// cannot use set.ResistanceType (variable of type *string) as sqlc.ResistanceTypeEnum value in struct literal

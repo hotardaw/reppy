@@ -12,3 +12,6 @@ RETURNING *;
 DELETE FROM muscles
 WHERE muscle_name = $1
 RETURNING *;
+
+-- name: DeleteAllMuscles :exec
+DELETE FROM muscles;

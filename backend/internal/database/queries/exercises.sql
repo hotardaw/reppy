@@ -24,11 +24,6 @@ SET exercise_name = $2, description = $3
 WHERE exercise_id = $1
 RETURNING *;
 
--- name: DeleteExercise :one
-DELETE FROM exercises 
-WHERE exercise_id = $1
-RETURNING *;
-
 -- name: ExerciseExists :one
 SELECT EXISTS(
   SELECT 1 FROM exercises 
@@ -40,3 +35,11 @@ SELECT * FROM exercises
 WHERE exercise_name ILIKE $1 
 ORDER BY exercise_name 
 LIMIT $2;
+
+-- name: DeleteExercise :one
+DELETE FROM exercises 
+WHERE exercise_id = $1
+RETURNING *;
+
+-- name: DeleteAllExercises :exec
+DELETE FROM exercises;
