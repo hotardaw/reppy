@@ -14,16 +14,84 @@ type TestExerciseMuscles struct {
 
 func GetTestExerciseMuscles() []TestExerciseMuscles {
 	return []TestExerciseMuscles{
-		// Compound Exercises - Upper Body Push
+		// Bench Press
 		{
-			ExerciseID:       1, // ID for bench press
-			MuscleID:         1, // ID for pec major
-			InvolvementLevel: "Primary",
+			ExerciseID:       1,
+			MuscleID:         1, // ID for "Pec Major"
+			InvolvementLevel: "primary",
 		},
 		{
-			ExerciseID:       1, // ID for "Bench Press"
+			ExerciseID:       1,
 			MuscleID:         8, // ID for "Anterior Deltoid"
-			InvolvementLevel: "Secondary",
+			InvolvementLevel: "secondary",
+		},
+		{
+			ExerciseID:       1,
+			MuscleID:         11, // Triceps
+			InvolvementLevel: "secondary",
+		},
+
+		// Overhead Press
+		{
+			ExerciseID:       2,
+			MuscleID:         8, // Anterior Deltoid
+			InvolvementLevel: "primary",
+		},
+		{
+			ExerciseID:       2,
+			MuscleID:         11, // Triceps
+			InvolvementLevel: "secondary",
+		},
+
+		// Push-up
+		{
+			ExerciseID:       3,
+			MuscleID:         1, // Pectoralis Major
+			InvolvementLevel: "primary",
+		},
+		{
+			ExerciseID:       3,
+			MuscleID:         11, // Triceps
+			InvolvementLevel: "secondary",
+		},
+		{
+			ExerciseID:       3,
+			MuscleID:         8, // Anterior Deltoid
+			InvolvementLevel: "secondary",
+		},
+
+		// Pull-up
+		{
+			ExerciseID:       4,
+			MuscleID:         6, // Latissimus Dorsi
+			InvolvementLevel: "primary",
+		},
+		{
+			ExerciseID:       4,
+			MuscleID:         12, // Biceps
+			InvolvementLevel: "secondary",
+		},
+		{
+			ExerciseID:       4,
+			MuscleID:         7, // Posterior Deltoid
+			InvolvementLevel: "secondary",
+		},
+
+		// Barbell Row
+		{
+			ExerciseID:       5,
+			MuscleID:         6, // Latissimus Dorsi
+			InvolvementLevel: "primary",
+		},
+		{
+			ExerciseID:       5,
+			MuscleID:         12, // Biceps
+			InvolvementLevel: "secondary",
+		},
+		{
+			ExerciseID:       5,
+			MuscleID:         7, // Posterior Deltoid
+			InvolvementLevel: "secondary",
 		},
 	}
 }
@@ -33,7 +101,7 @@ func SeedExerciseMuscles(queries *sqlc.Queries) error {
 		_, err := queries.CreateExerciseMuscle(context.Background(), sqlc.CreateExerciseMuscleParams{
 			ExerciseID:       exerciseMuscle.ExerciseID,
 			MuscleID:         exerciseMuscle.MuscleID,
-			InvolvementLevel: exerciseMuscle.InvolvementLevel,
+			InvolvementLevel: sqlc.InvolvementLevelEnum(exerciseMuscle.InvolvementLevel),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to seed exercise-muscle association %d-%d: %v", exerciseMuscle.ExerciseID, exerciseMuscle.MuscleID, err)

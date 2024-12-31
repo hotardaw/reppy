@@ -125,5 +125,3 @@ func NullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum 
 		Valid:              true,
 	}
 }
-
-// cannot use set.ResistanceType (variable of type *string) as sqlc.ResistanceTypeEnum value in struct literal

@@ -11,6 +11,48 @@ import (
 	"time"
 )
 
+type InvolvementLevelEnum string
+
+const (
+	InvolvementLevelEnumPrimary   InvolvementLevelEnum = "primary"
+	InvolvementLevelEnumSecondary InvolvementLevelEnum = "secondary"
+)
+
+func (e *InvolvementLevelEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = InvolvementLevelEnum(s)
+	case string:
+		*e = InvolvementLevelEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for InvolvementLevelEnum: %T", src)
+	}
+	return nil
+}
+
+type NullInvolvementLevelEnum struct {
+	InvolvementLevelEnum InvolvementLevelEnum
+	Valid                bool // Valid is true if InvolvementLevelEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInvolvementLevelEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.InvolvementLevelEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.InvolvementLevelEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInvolvementLevelEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.InvolvementLevelEnum), nil
+}
+
 type ResistanceTypeEnum string
 
 const (
@@ -70,7 +112,7 @@ type Exercise struct {
 type ExerciseMuscle struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 }
 
 type ExerciseOneRm struct {

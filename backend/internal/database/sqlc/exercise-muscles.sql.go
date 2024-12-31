@@ -24,7 +24,7 @@ INSERT INTO exercise_muscles (
 type CreateExerciseMuscleParams struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 }
 
 func (q *Queries) CreateExerciseMuscle(ctx context.Context, arg CreateExerciseMuscleParams) (ExerciseMuscle, error) {
@@ -92,7 +92,7 @@ WHERE em.exercise_id = $1
 type GetExerciseMusclesRow struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 	ExerciseName     string
 	MuscleName       string
 	MuscleGroup      string
@@ -144,7 +144,7 @@ ORDER BY e.exercise_name
 type GetExerciseMusclesByMuscleGroupRow struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 	ExerciseName     string
 	MuscleName       string
 	MuscleGroup      string
@@ -195,7 +195,7 @@ WHERE em.muscle_id = $1
 type GetMuscleExercisesRow struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 	ExerciseName     string
 	MuscleName       string
 	MuscleGroup      string
@@ -285,7 +285,7 @@ ORDER BY e.exercise_name, m.muscle_name
 type ListExerciseMusclesRow struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 	ExerciseName     string
 	MuscleName       string
 	MuscleGroup      string
@@ -331,7 +331,7 @@ RETURNING exercise_id, muscle_id, involvement_level
 type UpdateExerciseMuscleParams struct {
 	ExerciseID       int32
 	MuscleID         int32
-	InvolvementLevel string
+	InvolvementLevel InvolvementLevelEnum
 }
 
 func (q *Queries) UpdateExerciseMuscle(ctx context.Context, arg UpdateExerciseMuscleParams) (ExerciseMuscle, error) {

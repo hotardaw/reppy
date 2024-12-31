@@ -52,7 +52,7 @@ CREATE TABLE workout_sets (
     set_number INTEGER NOT NULL,          -- We'll handle this in the application layer
     reps INTEGER,                         -- Optional - filled in when performed
     resistance_value INTEGER,             -- Optional - weight in lbs/kg
-    resistance_type resistance_type_enum, -- Optional - 'weight', 'band', etc.
+    resistance_type resistance_type_enum, -- Optional - 'weight', 'band', 'bodyweight' only
     resistance_detail VARCHAR(100),       -- Optional - band color, cable attachment, etc.
     rpe DECIMAL(3,1),                     -- Optional
     percent_1rm DECIMAL(4,1),             -- Optional, allows values like 77.5, 82.5, etc.
@@ -61,7 +61,7 @@ CREATE TABLE workout_sets (
     PRIMARY KEY (workout_id, exercise_id, set_number)
 );
 
--- This will contribute to weekly volume reports showing muscle groups over/underworked
+-- This will contribute to generating volume reports showing muscle groups over/underworked
 CREATE TABLE muscles (
     muscle_id SERIAL PRIMARY KEY,
     muscle_name VARCHAR(50) NOT NULL UNIQUE,
@@ -70,10 +70,11 @@ CREATE TABLE muscles (
 );
 
 -- Junction table for exercise-muscle relationships
+CREATE TYPE involvement_level_enum AS ENUM ('primary', 'secondary');
 CREATE TABLE exercise_muscles (
     exercise_id INTEGER REFERENCES exercises(exercise_id),
     muscle_id INTEGER REFERENCES muscles(muscle_id),
-    involvement_level VARCHAR(20) NOT NULL,  -- 'Primary', 'Secondary', or 'Stabilizer'
+    involvement_level involvement_level_enum NOT NULL,
     PRIMARY KEY (exercise_id, muscle_id)
 );
 
