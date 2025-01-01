@@ -61,19 +61,18 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.queries.CreateUser(r.Context(), sqlc.CreateUserParams{
+	params := sqlc.CreateUserParams{
 		Email:        request.Email,
 		PasswordHash: string(hashedPassword),
 		Username:     request.Username,
-	})
-
+	}
+	user, err := h.queries.CreateUser(r.Context(), params)
 	if err != nil {
-		// handle dupe emails/usernames
 		if strings.Contains(err.Error(), "unique constraint") {
 			if strings.Contains(err.Error(), "email") {
 				response.SendError(w, "Email already in use", http.StatusConflict)
 			} else if strings.Contains(err.Error(), "username") {
-				response.SendError(w, "Username already taken", http.StatusConflict)
+				response.SendError(w, "Username already in use", http.StatusConflict)
 			} else {
 				response.SendError(w, "Duplicate value", http.StatusConflict)
 			}

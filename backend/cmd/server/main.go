@@ -19,6 +19,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const (
+	timeoutDuration = 10 * time.Second
+	maxBodySize     = 1024 * 1024 // 1mb
+)
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -45,9 +50,28 @@ func main() {
 		RefreshDuration: 7 * 24 * time.Hour,
 		Issuer:          "fitsync",
 	}
-	timeoutMiddleware := middleware.TimeoutMiddleware(10 * time.Second)
+
+	timeoutMiddleware := middleware.TimeoutMiddleware(timeoutDuration)
 	loggingMiddleware := middleware.LoggingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtConfig)
+	maxBodySizeMiddleware := middleware.MaxBodySizeMiddleware(maxBodySize)
+
+	baseMiddleware := []func(http.HandlerFunc) http.HandlerFunc{
+		timeoutMiddleware,
+		loggingMiddleware,
+		maxBodySizeMiddleware,
+	}
+	protectedMiddleware := append([]func(http.HandlerFunc) http.HandlerFunc{
+		authMiddleware.AuthenticateJWT,
+	}, baseMiddleware...)
+
+	protected := func(handler http.HandlerFunc) http.HandlerFunc {
+		return chainMiddleware(handler, protectedMiddleware...)
+	}
+
+	unprotected := func(handler http.HandlerFunc) http.HandlerFunc {
+		return chainMiddleware(handler, baseMiddleware...)
+	}
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(queries, authMiddleware)
@@ -57,70 +81,30 @@ func main() {
 	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
 	muscleHandler := handlers.NewMuscleHandler(queries)
 	exerciseHandler := handlers.NewExerciseHandler(queries)
+	workoutHandler := handlers.NewWorkoutHandler(queries, jwtConfig.AccessSecret)
+	workoutByIDHandler := handlers.NewWorkoutByIDHandler(queries)
 
 	mux := http.NewServeMux()
 
-	// Auth routes (unprotected)
-	mux.HandleFunc("/login/", chainMiddleware(
-		authHandler.HandleLogin,
-		timeoutMiddleware,
-		loggingMiddleware,
-	))
-	mux.HandleFunc("/refresh/", chainMiddleware(
-		authHandler.HandleRefresh,
-		timeoutMiddleware,
-		loggingMiddleware,
-	))
+	// Auth routes
+	mux.HandleFunc("/signup", unprotected(authHandler.HandleSignup))
+	mux.HandleFunc("/login", unprotected(authHandler.HandleLogin))
+	mux.HandleFunc("/refresh", unprotected(authHandler.HandleRefresh))
 
-	// User routes (protected)
-	mux.HandleFunc("/users", chainMiddleware( // GET(all), POST
-		userHandler.HandleUsers,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-	mux.HandleFunc("/users/", chainMiddleware( // GET, PATCH, DELETE w/ ID
-		userByIDHandler.HandleUserByID,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-
-	mux.HandleFunc("/user-profiles", chainMiddleware( // GET(all), POST
-		userProfileHandler.HandleUserProfiles,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-	mux.HandleFunc("/user-profiles/", chainMiddleware( // GET, PATCH, DELETE w/ ID
-		userProfileByIDHandler.HandleUserProfilesByID,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-
-	mux.HandleFunc("/muscles", chainMiddleware(
-		muscleHandler.HandleMuscles,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-
-	mux.HandleFunc("/exercises", chainMiddleware(
-		exerciseHandler.HandleExercises,
-		timeoutMiddleware,
-		loggingMiddleware,
-		authMiddleware.AuthenticateJWT,
-	))
-
-	// mux.HandleFunc("/workouts", middleware.LoggingMiddleware(workoutHandler.HandleWorkouts))     // GET, POST
-	// mux.HandleFunc("/workouts/", middleware.LoggingMiddleware(workoutHandler.HandleWorkoutByID)) // GET, PATCH, DELETE w/ ID
+	// User routes
+	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                // GET(all), POST
+	mux.HandleFunc("/users", protected(userByIDHandler.HandleUserByID))                         // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), POST
+	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                          // GET, POST, DELETE
+	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), GET, POST, DELETE
+	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                       // GET(all),POST
+	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))              // GET, PATCH, DELETE w/ ID
 
 	// Default/root handler
-	mux.HandleFunc("/", chainMiddleware(
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprintf(w, `<html><head><title>FitSync API</title></head><body>
+	mux.HandleFunc("/", unprotected(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, `<html><head><title>FitSync API</title></head><body>
         <u>FitSync API Routes</u>:
         <li>/login/</li>
         <li>/refresh/</li>
@@ -130,15 +114,13 @@ func main() {
         <li>/user-profiles/{user_id}</li>
         <li>/muscles</li>
         <li>/exercises</li>
+
         <h2>in progress:</h2>
         <li>/workouts</li>
         <li>/workouts/{workout_id}</li>
         
         </body></html>`)
-		},
-		timeoutMiddleware,
-		loggingMiddleware,
-	))
+	}))
 
 	log.Printf("Server starting on port %s...", cfg.Server.Port)
 	if err := http.ListenAndServe(":"+cfg.Server.Port, mux); err != nil {

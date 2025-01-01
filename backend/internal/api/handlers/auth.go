@@ -1,11 +1,9 @@
 // TODO: add
 // - rate limits for login
 // - request body size limit to prevent mem exhaustion
-// - request timeout contexts to prevent resource lockup/prevent DOS
 package handlers
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -16,14 +14,8 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
-)
-
-const (
-	requestTimeout = 10 * time.Second
-	maxBodySize    = 1 * 1024 * 1024 // 1mb
 )
 
 type AuthHandler struct {
@@ -36,6 +28,11 @@ func NewAuthHandler(queries *sqlc.Queries, auth *middleware.AuthMiddleware) *Aut
 		queries: queries,
 		auth:    auth,
 	}
+}
+
+type SignupRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type LoginRequest struct {
@@ -52,11 +49,62 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	// Context times out after 10s
-	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
-	defer cancel() // Always cancel to clean up resources
+func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
+	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
+	if cleanPath != "signup" {
+		response.SendError(w, "Invalid path", http.StatusNotFound)
+		return
+	}
 
+	if r.Method != http.MethodPost {
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		log.Printf("Received request with method: %s", r.Method)
+		return
+	}
+
+	var request struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Username string `json:"username"`
+	}
+
+	// copying CreateUser API pretty closely here to avoid calling an API from within an API
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		response.SendError(w, "Failed to process password", http.StatusInternalServerError)
+		return
+	}
+
+	params := sqlc.CreateUserParams{
+		Email:        request.Email,
+		PasswordHash: string(hashedPassword),
+		Username:     request.Username,
+	}
+	user, err := h.queries.CreateUser(r.Context(), params)
+	if err != nil {
+		if strings.Contains(err.Error(), "unique constraint") {
+			if strings.Contains(err.Error(), "email") {
+				response.SendError(w, "Email already in use", http.StatusConflict)
+			} else if strings.Contains(err.Error(), "username") {
+				response.SendError(w, "Username already in use", http.StatusConflict)
+			} else {
+				response.SendError(w, "Duplicate value", http.StatusConflict)
+			}
+			return
+		}
+		response.SendError(w, "Duplicate value", http.StatusConflict)
+		return
+	}
+
+	response.SendSuccess(w, user, http.StatusCreated)
+}
+
+func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
 	if cleanPath != "/login" {
 		response.SendError(w, "Invalid path", http.StatusNotFound)
@@ -65,10 +113,9 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		log.Printf("Received request with method: %s", r.Method)
 		return
 	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 
 	var request LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -81,7 +128,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.queries.GetUserByEmail(ctx, request.Email)
+	user, err := h.queries.GetUserByEmail(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.SendError(w, "Invalid credentials", http.StatusUnauthorized)
@@ -105,7 +152,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update last login
-	if err := h.queries.UpdateLastLogin(ctx, user.UserID); err != nil {
+	if err := h.queries.UpdateLastLogin(r.Context(), user.UserID); err != nil {
 		// log err but don't fail the request
 		log.Printf("Failed to update last login: %v", err)
 	}
@@ -129,8 +176,6 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 
 	var request RefreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
