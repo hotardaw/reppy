@@ -33,6 +33,7 @@ func NewAuthHandler(queries *sqlc.Queries, auth *middleware.AuthMiddleware) *Aut
 type SignupRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Username string `json:"username"`
 }
 
 type LoginRequest struct {
@@ -50,11 +51,10 @@ type RefreshRequest struct {
 }
 
 func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	if cleanPath != "signup" {
-		response.SendError(w, "Invalid path", http.StatusNotFound)
-		return
-	}
+	// tasks remaining here:
+	// validate email format, password strength, username requirements before processing
+	// generate & return auth tokens immediately so user's already signed in after acct creation
+	// log failed signup attempts
 
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -62,11 +62,7 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Username string `json:"username"`
-	}
+	var request SignupRequest
 
 	// copying CreateUser API pretty closely here to avoid calling an API from within an API
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -92,8 +88,6 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 				response.SendError(w, "Email already in use", http.StatusConflict)
 			} else if strings.Contains(err.Error(), "username") {
 				response.SendError(w, "Username already in use", http.StatusConflict)
-			} else {
-				response.SendError(w, "Duplicate value", http.StatusConflict)
 			}
 			return
 		}

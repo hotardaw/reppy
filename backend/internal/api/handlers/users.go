@@ -73,8 +73,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 				response.SendError(w, "Email already in use", http.StatusConflict)
 			} else if strings.Contains(err.Error(), "username") {
 				response.SendError(w, "Username already in use", http.StatusConflict)
-			} else {
-				response.SendError(w, "Duplicate value", http.StatusConflict)
 			}
 			return
 		}
