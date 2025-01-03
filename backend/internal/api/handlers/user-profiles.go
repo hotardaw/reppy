@@ -25,7 +25,7 @@ func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.R
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
 	parts := strings.Split(cleanPath, "/")
 
-	// Ensure only /user-profiles endpoint is handled
+	// Handle both "/user-profiles" & "/user-profiles/active" endpoints
 	if len(parts) != 2 || parts[1] != "user-profiles" {
 		response.SendError(w, "Invalid URL - must be '/user-profiles'", http.StatusBadRequest)
 		return
@@ -33,7 +33,13 @@ func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.R
 
 	switch r.Method {
 	case http.MethodGet:
-		h.GetAllUserProfiles(w, r)
+		if r.URL.Query().Get("active") == "true" {
+			h.GetAllActiveUserProfiles(w, r)
+		} else if r.URL.Query().Get("active") == "false" {
+			h.GetAllInactiveUserProfiles(w, r)
+		} else {
+			h.GetAllUserProfiles(w, r)
+		}
 	case http.MethodPost:
 		h.CreateUserProfile(w, r)
 	default:
@@ -50,6 +56,26 @@ func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.R
 	}
 
 	response.SendSuccess(w, userProfiles)
+}
+
+func (h *UserProfileHandler) GetAllActiveUserProfiles(w http.ResponseWriter, r *http.Request) {
+	activeUserProfiles, err := h.queries.GetAllActiveUserProfiles(r.Context())
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, activeUserProfiles)
+}
+
+func (h *UserProfileHandler) GetAllInactiveUserProfiles(w http.ResponseWriter, r *http.Request) {
+	inactiveUserProfiles, err := h.queries.GetAllInactiveUserProfiles(r.Context())
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, inactiveUserProfiles)
 }
 
 func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,44 @@ WHERE user_profiles.user_id = $1;
 SELECT user_profiles.*
 FROM user_profiles;
 
+-- Weird SQLc error with using user_profiles.* here - generated empty select statement. Explicitly naming columns to select instead.
+-- name: GetAllActiveUserProfiles :many
+SELECT
+  ups.profile_id,
+  ups.user_id,
+  ups.first_name,
+  ups.last_name,
+  ups.date_of_birth,
+  ups.gender,
+  ups.height_inches,
+  ups.weight_pounds,
+  ups.profile_picture_url,
+  ups.created_at,
+  ups.updated_at,
+  u.active
+FROM user_profiles ups
+JOIN users u ON ups.user_id = u.user_id
+WHERE u.active = true;
+
+-- Same thing here - explicitly naming columns to return.
+-- name: GetAllInactiveUserProfiles :many
+SELECT 
+  ups.profile_id,
+  ups.user_id,
+  ups.first_name,
+  ups.last_name,
+  ups.date_of_birth,
+  ups.gender,
+  ups.height_inches,
+  ups.weight_pounds,
+  ups.profile_picture_url,
+  ups.created_at,
+  ups.updated_at,
+  u.active
+FROM user_profiles ups
+JOIN users u ON ups.user_id = u.user_id
+WHERE u.active = false;
+
 -- name: CreateUserProfile :one
 INSERT INTO user_profiles (user_id, first_name, last_name, date_of_birth, gender, height_inches, weight_pounds)
 VALUES ($1, $2, $3, $4, $5, $6, $7)

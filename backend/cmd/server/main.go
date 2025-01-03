@@ -97,7 +97,7 @@ func main() {
 	// User routes
 	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                // GET(all), POST
 	mux.HandleFunc("/users/", protected(userByIDHandler.HandleUserByID))                        // GET, PATCH, DELETE w/ ID
-	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), POST
+	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), GET?active=true, POST
 	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
 	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                          // GET, POST, DELETE
 	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), GET, POST, DELETE
