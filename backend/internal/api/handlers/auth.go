@@ -9,7 +9,6 @@ import (
 	"go-fitsync/backend/internal/database/sqlc"
 	"log"
 	"net/http"
-	"path"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -154,9 +153,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.auth.GenerateTokenPair(
-		int64(user.UserID),
-	)
+	accessToken, refreshToken, err := h.auth.GenerateTokenPair(int64(user.UserID))
 	if err != nil {
 		response.SendError(w, "Failed to generate tokens", http.StatusInternalServerError)
 		return
@@ -177,12 +174,6 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	if cleanPath != "/refresh" {
-		response.SendError(w, "Invalid path", http.StatusNotFound)
-		return
-	}
-
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -219,4 +210,28 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccess(w, responseData)
+}
+
+// Since we're using JWTs, which can't be invalidated, we add the refresh token to the blacklist in the auth middleware
+// in prod, we'd store the blacklist in redis or db instead of memory and implement blacklist cleanup
+// in current impl, frontend needs to send a POST req to this logout endpoint with the refresh token stringify'ed in body, then localStorage.removeItem() on both tokens, clear React FE's auth state, and navigate to login or some unprotected page
+func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// extract refresh token from client request
+	var request RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		response.SendError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.auth.InvalidateRefreshToken(request.RefreshToken); err != nil {
+		response.SendError(w, "Failed to logout", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, nil)
 }

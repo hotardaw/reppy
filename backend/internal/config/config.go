@@ -24,7 +24,7 @@ func Load() (*Config, error) {
 	cfg.Database.Host = "db"
 	cfg.Database.Port = "5432"
 	cfg.Database.User = "user01"
-	cfg.Database.Password = "pass01"
+	cfg.Database.Password = "user01239nTGN35pio!$"
 	cfg.Database.DBName = "fitsyncdb"
 	cfg.Server.Port = "8081"
 	return cfg, nil

@@ -39,11 +39,20 @@ type Claims struct {
 }
 
 type AuthMiddleware struct {
-	config JWTConfig
+	config            JWTConfig
+	blacklistedTokens map[string]time.Time
 }
 
 func NewAuthMiddleware(config JWTConfig) *AuthMiddleware {
-	return &AuthMiddleware{config: config}
+	return &AuthMiddleware{
+		config:            config,
+		blacklistedTokens: make(map[string]time.Time),
+	}
+}
+
+func (am *AuthMiddleware) InvalidateRefreshToken(token string) error {
+	am.blacklistedTokens[token] = time.Now()
+	return nil
 }
 
 // generate access & refresh token
@@ -82,6 +91,11 @@ func (am *AuthMiddleware) ValidateRefreshToken(tokenString string) (*Claims, err
 }
 
 func (am *AuthMiddleware) validateToken(tokenString string, secret []byte) (*Claims, error) {
+	// check if token is blacklisted first
+	if _, blacklisted := am.blacklistedTokens[tokenString]; blacklisted {
+		return nil, ErrInvalidToken
+	}
+
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
