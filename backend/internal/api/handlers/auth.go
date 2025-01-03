@@ -52,7 +52,7 @@ type RefreshRequest struct {
 
 func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	// tasks remaining here:
-	// validate email format, password strength, username requirements before processing
+	// validate email format, password strength, username char requirements before processing
 	// generate & return auth tokens immediately so user's already signed in after acct creation
 	// log failed signup attempts
 
@@ -81,6 +81,11 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hashedPassword),
 		Username:     request.Username,
 	}
+	if params.Email == "" || params.PasswordHash == "" || params.Username == "" {
+		response.SendError(w, "All fields must be filled", http.StatusBadRequest)
+		return
+	}
+
 	user, err := h.queries.CreateUser(r.Context(), params)
 	if err != nil {
 		if strings.Contains(err.Error(), "unique constraint") {
@@ -99,12 +104,6 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	if cleanPath != "/login" {
-		response.SendError(w, "Invalid path", http.StatusNotFound)
-		return
-	}
-
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		log.Printf("Received request with method: %s", r.Method)

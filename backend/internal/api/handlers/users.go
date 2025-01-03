@@ -23,6 +23,12 @@ func NewUserHandler(q *sqlc.Queries) *UserHandler {
 	}
 }
 
+type CreateUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
 func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
 	parts := strings.Split(cleanPath, "/")
@@ -44,11 +50,7 @@ func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Username string `json:"username"`
-	}
+	var request CreateUserRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
@@ -66,6 +68,11 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hashedPassword),
 		Username:     request.Username,
 	}
+	if params.Email == "" || params.PasswordHash == "" || params.Username == "" {
+		response.SendError(w, "All fields must be filled", http.StatusBadRequest)
+		return
+	}
+
 	user, err := h.queries.CreateUser(r.Context(), params)
 	if err != nil {
 		if strings.Contains(err.Error(), "unique constraint") {
