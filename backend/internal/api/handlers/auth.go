@@ -1,6 +1,3 @@
-// TODO: add
-// - rate limits for login
-// - request body size limit to prevent mem exhaustion
 package handlers
 
 import (
@@ -34,6 +31,12 @@ type SignupRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Username string `json:"username"`
+}
+
+type SignupResponse struct {
+	User         sqlc.User `json:"user"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 type LoginRequest struct {
@@ -100,7 +103,22 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccess(w, user, http.StatusCreated)
+	// generate token pair for user
+	accessToken, refreshToken, err := h.auth.GenerateTokenPair(int64(user.UserID))
+	if err != nil {
+		response.SendError(w, "Created new user, but failed to generate tokens", http.StatusInternalServerError)
+		return
+	}
+
+	responseData := SignupResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+	// client extracts tokens from responseData to store in auth header
+	// Authorization: Bearer <access_token>
+
+	response.SendSuccess(w, responseData, http.StatusCreated)
 }
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
