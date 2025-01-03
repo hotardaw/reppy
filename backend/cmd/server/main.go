@@ -60,6 +60,8 @@ func main() {
 		timeoutMiddleware,
 		loggingMiddleware,
 		maxBodySizeMiddleware,
+		// add rate limiter, ESPECIALLY for refresh tokens
+		// add active-status-only for users in the db, since we perform soft deletes
 	}
 	protectedMiddleware := append([]func(http.HandlerFunc) http.HandlerFunc{
 		authMiddleware.AuthenticateJWT,
@@ -90,6 +92,7 @@ func main() {
 	mux.HandleFunc("/signup", unprotected(authHandler.HandleSignup))
 	mux.HandleFunc("/login", unprotected(authHandler.HandleLogin))
 	mux.HandleFunc("/refresh", unprotected(authHandler.HandleRefresh))
+	mux.HandleFunc("/logout", unprotected(authHandler.HandleLogout))
 
 	// User routes
 	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                // GET(all), POST
