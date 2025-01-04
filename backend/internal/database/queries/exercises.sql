@@ -16,7 +16,7 @@ WHERE exercise_name = $1;
 
 -- name: GetAllExercises :many
 SELECT * FROM exercises 
-ORDER BY exercise_name;
+ORDER BY exercise_id;
 
 -- name: UpdateExercise :one
 UPDATE exercises 

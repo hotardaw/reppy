@@ -46,7 +46,7 @@ func main() {
 	jwtConfig := middleware.JWTConfig{
 		AccessSecret:    []byte(cfg.JWT.AccessSecret),
 		RefreshSecret:   []byte(cfg.JWT.RefreshSecret),
-		AccessDuration:  15 * time.Minute,
+		AccessDuration:  30 * time.Minute, // change to 15 later
 		RefreshDuration: 7 * 24 * time.Hour,
 		Issuer:          "fitsync",
 	}
@@ -83,6 +83,7 @@ func main() {
 	userProfileByIDHandler := handlers.NewUserProfileByIDHandler(queries)
 	muscleHandler := handlers.NewMuscleHandler(queries)
 	exerciseHandler := handlers.NewExerciseHandler(queries)
+	exerciseByIDHandler := handlers.NewExerciseByIDHandler(queries)
 	workoutHandler := handlers.NewWorkoutHandler(queries, jwtConfig.AccessSecret)
 	workoutByIDHandler := handlers.NewWorkoutByIDHandler(queries)
 
@@ -101,6 +102,7 @@ func main() {
 	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
 	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                          // GET, POST, DELETE
 	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), GET, POST, DELETE
+	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))           // GET(all), GET, POST, DELETE
 	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                       // GET(all),POST
 	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))              // GET, PATCH, DELETE w/ ID
 

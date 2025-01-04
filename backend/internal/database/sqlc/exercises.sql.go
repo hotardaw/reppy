@@ -79,7 +79,7 @@ func (q *Queries) ExerciseExists(ctx context.Context, exerciseName string) (bool
 
 const getAllExercises = `-- name: GetAllExercises :many
 SELECT exercise_id, exercise_name, description, created_at FROM exercises 
-ORDER BY exercise_name
+ORDER BY exercise_id
 `
 
 func (q *Queries) GetAllExercises(ctx context.Context) ([]Exercise, error) {
