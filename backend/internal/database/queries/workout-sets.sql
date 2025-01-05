@@ -1,9 +1,19 @@
--- TODO: add a multi-creation version of this with pgx's CopyFrom().
--- name: CreateWorkoutSet :one
-INSERT INTO workout_sets
+-- name: CreateWorkoutSets :many
+WITH input_rows AS (
+  SELECT 
+    unnest($1::int[]) as workout_id,
+    unnest($2::int[]) as exercise_id,
+    unnest($3::int[]) as set_number,
+    unnest($4::int[]) as reps,
+    unnest($5::numeric[]) as resistance_value,
+    unnest($6::text[]) as resistance_type,
+    unnest($7::text[]) as resistance_detail,
+    unnest($8::int[]) as rpe,
+    unnest($9::text[]) as notes
+)
+INSERT INTO workout_sets 
 (workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes)
-VALUES 
-($1, $2, $3, $4, $5, $6, $7, $8, $9)
+SELECT * FROM input_rows
 RETURNING *;
 
 -- name: GetAllWorkoutSets :many
