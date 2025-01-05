@@ -9,56 +9,84 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
-const createWorkoutSet = `-- name: CreateWorkoutSet :one
-INSERT INTO workout_sets
+const createWorkoutSets = `-- name: CreateWorkoutSets :many
+WITH input_rows AS (
+  SELECT 
+    unnest($1::int[]) workout_id,
+    unnest($2::int[]) exercise_id,
+    unnest($3::int[]) set_number,
+    unnest($4::int[]) reps,
+    unnest($5::numeric[]) resistance_value,
+    unnest($6::text[]) resistance_type,
+    unnest($7::text[]) resistance_detail,
+    unnest($8::numeric[]) rpe,
+    unnest($9::text[]) notes
+)
+INSERT INTO workout_sets 
 (workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes)
-VALUES 
-($1, $2, $3, $4, $5, $6, $7, $8, $9)
+SELECT workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes FROM input_rows
 RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
-type CreateWorkoutSetParams struct {
-	WorkoutID        int32
-	ExerciseID       int32
-	SetNumber        int32
-	Reps             sql.NullInt32
-	ResistanceValue  sql.NullInt32
-	ResistanceType   NullResistanceTypeEnum
-	ResistanceDetail sql.NullString
-	Rpe              sql.NullString
-	Notes            sql.NullString
+type CreateWorkoutSetsParams struct {
+	Column1 []int32
+	Column2 []int32
+	Column3 []int32
+	Column4 []int32
+	Column5 []string
+	Column6 []string
+	Column7 []string
+	Column8 []string
+	Column9 []string
 }
 
-// TODO: add a multi-creation version of this with pgx's CopyFrom().
-func (q *Queries) CreateWorkoutSet(ctx context.Context, arg CreateWorkoutSetParams) (WorkoutSet, error) {
-	row := q.db.QueryRowContext(ctx, createWorkoutSet,
-		arg.WorkoutID,
-		arg.ExerciseID,
-		arg.SetNumber,
-		arg.Reps,
-		arg.ResistanceValue,
-		arg.ResistanceType,
-		arg.ResistanceDetail,
-		arg.Rpe,
-		arg.Notes,
+func (q *Queries) CreateWorkoutSets(ctx context.Context, arg CreateWorkoutSetsParams) ([]WorkoutSet, error) {
+	rows, err := q.db.QueryContext(ctx, createWorkoutSets,
+		pq.Array(arg.Column1),
+		pq.Array(arg.Column2),
+		pq.Array(arg.Column3),
+		pq.Array(arg.Column4),
+		pq.Array(arg.Column5),
+		pq.Array(arg.Column6),
+		pq.Array(arg.Column7),
+		pq.Array(arg.Column8),
+		pq.Array(arg.Column9),
 	)
-	var i WorkoutSet
-	err := row.Scan(
-		&i.WorkoutID,
-		&i.ExerciseID,
-		&i.SetNumber,
-		&i.Reps,
-		&i.ResistanceValue,
-		&i.ResistanceType,
-		&i.ResistanceDetail,
-		&i.Rpe,
-		&i.Percent1rm,
-		&i.Notes,
-		&i.CreatedAt,
-	)
-	return i, err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []WorkoutSet
+	for rows.Next() {
+		var i WorkoutSet
+		if err := rows.Scan(
+			&i.WorkoutID,
+			&i.ExerciseID,
+			&i.SetNumber,
+			&i.Reps,
+			&i.ResistanceValue,
+			&i.ResistanceType,
+			&i.ResistanceDetail,
+			&i.Rpe,
+			&i.Percent1rm,
+			&i.Notes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteAllWorkoutSets = `-- name: DeleteAllWorkoutSets :exec

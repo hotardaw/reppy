@@ -1,15 +1,15 @@
 -- name: CreateWorkoutSets :many
 WITH input_rows AS (
   SELECT 
-    unnest($1::int[]) as workout_id,
-    unnest($2::int[]) as exercise_id,
-    unnest($3::int[]) as set_number,
-    unnest($4::int[]) as reps,
-    unnest($5::numeric[]) as resistance_value,
-    unnest($6::text[]) as resistance_type,
-    unnest($7::text[]) as resistance_detail,
-    unnest($8::int[]) as rpe,
-    unnest($9::text[]) as notes
+    unnest($1::int[]) workout_id,
+    unnest($2::int[]) exercise_id,
+    unnest($3::int[]) set_number,
+    unnest($4::int[]) reps,
+    unnest($5::numeric[]) resistance_value,
+    unnest($6::text[]) resistance_type,
+    unnest($7::text[]) resistance_detail,
+    unnest($8::numeric[]) rpe,
+    unnest($9::text[]) notes
 )
 INSERT INTO workout_sets 
 (workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes)
