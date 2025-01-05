@@ -61,7 +61,7 @@ CREATE TABLE workout_sets (
     PRIMARY KEY (workout_id, exercise_id, set_number)
 );
 
--- This will contribute to generating volume reports showing muscle groups over/underworked
+-- This will contribute to generating (weekly?) volume reports for users showing muscle groups they might've over/underworked
 CREATE TABLE muscles (
     muscle_id SERIAL PRIMARY KEY,
     muscle_name VARCHAR(50) NOT NULL UNIQUE,

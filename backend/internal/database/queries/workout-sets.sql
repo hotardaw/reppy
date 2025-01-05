@@ -6,7 +6,7 @@ WITH input_rows AS (
     unnest($3::int[]) set_number,
     unnest($4::int[]) reps,
     unnest($5::numeric[]) resistance_value,
-    unnest($6::text[]) resistance_type,
+    unnest($6::resistance_type_enum[]) resistance_type,
     unnest($7::text[]) resistance_detail,
     unnest($8::numeric[]) rpe,
     unnest($9::text[]) notes

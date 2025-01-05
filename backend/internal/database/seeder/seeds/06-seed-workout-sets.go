@@ -3,6 +3,7 @@ package seeds
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
@@ -82,9 +83,9 @@ func SeedWorkoutSets(queries *sqlc.Queries) error {
 	setNumbers := make([]int32, len(sets))
 	reps := make([]int32, len(sets))
 	resistanceValues := make([]string, len(sets))
-	resistanceTypes := make([]string, len(sets))
+	resistanceTypes := make([]sqlc.ResistanceTypeEnum, len(sets))
 	resistanceDetails := make([]string, len(sets))
-	rpes := make([]string, len(sets)) // expecting numeric input
+	rpes := make([]string, len(sets))
 	notes := make([]string, len(sets))
 
 	for i, set := range sets {
@@ -96,18 +97,28 @@ func SeedWorkoutSets(queries *sqlc.Queries) error {
 		}
 		if set.ResistanceValue != nil {
 			resistanceValues[i] = fmt.Sprintf("%.1f", *set.ResistanceValue)
+		} else {
+			resistanceValues[i] = "0" // default if nil
 		}
 		if set.ResistanceType != nil {
-			resistanceTypes[i] = *set.ResistanceType
+			resistanceTypes[i] = stringToResistanceType(*set.ResistanceType)
+		} else {
+			resistanceTypes[i] = stringToResistanceType("bodyweight") // default if nil
 		}
 		if set.ResistanceDetail != nil {
 			resistanceDetails[i] = *set.ResistanceDetail
+		} else {
+			resistanceDetails[i] = ""
 		}
 		if set.RPE != nil {
 			rpes[i] = fmt.Sprintf("%.1f", *set.RPE)
+		} else {
+			rpes[i] = "0"
 		}
 		if set.Notes != nil {
 			notes[i] = *set.Notes
+		} else {
+			notes[i] = ""
 		}
 	}
 
@@ -128,4 +139,17 @@ func SeedWorkoutSets(queries *sqlc.Queries) error {
 
 	fmt.Println("Successfully seeded WORKOUT-SETS table")
 	return nil
+}
+
+func stringToResistanceType(s string) sqlc.ResistanceTypeEnum {
+	switch strings.ToLower(s) {
+	case "bodyweight":
+		return sqlc.ResistanceTypeEnumBodyweight
+	case "weight":
+		return sqlc.ResistanceTypeEnumWeight
+	case "band":
+		return sqlc.ResistanceTypeEnumBand
+	default:
+		return sqlc.ResistanceTypeEnumBodyweight
+	}
 }
