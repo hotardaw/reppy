@@ -98,11 +98,11 @@ func main() {
 	// User routes
 	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                // GET(all), POST
 	mux.HandleFunc("/users/", protected(userByIDHandler.HandleUserByID))                        // GET, PATCH, DELETE w/ ID
-	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), GET?active=true, POST
+	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), GET(active), POST
 	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
 	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                          // GET, POST, DELETE
-	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), GET, POST, DELETE
-	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))           // GET(all), GET, POST, DELETE
+	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), POST
+	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))           // GET, PATCH, DELETE
 	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                       // GET(all),POST
 	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))              // GET, PATCH, DELETE w/ ID
 
@@ -119,11 +119,13 @@ func main() {
         <li>/user-profiles/{user_id}</li>
         <li>/muscles</li>
         <li>/exercises</li>
-
-        <h2>in progress:</h2>
         <li>/workouts</li>
         <li>/workouts/{workout_id}</li>
-        
+				
+        <h2>in progress:</h2>
+        <li>/workout-sets</li>
+        <li>/workout-sets/{workout_id}</li>
+				
         </body></html>`)
 	}))
 

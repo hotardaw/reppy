@@ -26,10 +26,10 @@ WHERE user_id = $1 AND workout_date = $2;
 -- UPDATE: Modify an existing workout
 -- name: UpdateWorkout :one
 UPDATE workouts
-SET workout_date = $1,
-  title = $2,
+SET 
+  title = $1,
   updated_at = CURRENT_TIMESTAMP
-WHERE workout_id = $3 AND user_id = $4
+WHERE workout_id = $2 AND user_id = $3
 RETURNING workout_id, workout_date, title, updated_at;
 
 -- DELETE: Remove a workout

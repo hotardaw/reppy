@@ -5,17 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"net/http"
+	"time"
+
 	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
-	"net/http"
-	"path"
-	"strings"
-	"time"
 )
 
-// GET (all, one by date), POST
 type WorkoutHandler struct {
 	queries   *sqlc.Queries
 	jwtSecret []byte
@@ -28,33 +26,38 @@ func NewWorkoutHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutHandler {
 	}
 }
 
+type CreateWorkoutRequest struct {
+	Title       string           `json:"title"`             // name of workout, e.g. "Upper Body 2"
+	WorkoutDate utils.CustomDate `json:"clientworkoutdate"` // YYYY-MM-DD
+}
+
+type WorkoutResponse struct {
+	WorkoutID   int32          `json:"WorkoutID"`
+	WorkoutDate string         `json:"WorkoutDate"` // post-db query, pre-response, sent as string
+	Title       sql.NullString `json:"Title"`
+	CreatedAt   sql.NullTime   `json:"CreatedAt"`
+}
+
 func (h *WorkoutHandler) HandleWorkouts(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	parts := strings.Split(cleanPath, "/")
-
-	if len(parts) == 2 { // "/workouts"
-		switch r.Method {
-		case http.MethodGet:
-			h.GetAllWorkoutsForUser(w, r)
-		case http.MethodPost:
-			h.CreateWorkout(w, r)
-		default:
-			response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-		return
-	}
-
-	if len(parts) == 3 && parts[2] == "date" { // "workouts/date"
-		switch r.Method {
-		case http.MethodGet:
+	dateQueryParams := r.URL.Query()
+	if _, exists := dateQueryParams["date"]; exists {
+		if r.Method == http.MethodGet {
 			h.GetWorkoutByUserIDAndDate(w, r)
-		default:
-			response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
 		}
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	response.SendError(w, "Invalid URL", http.StatusBadRequest)
+	// base path
+	switch r.Method {
+	case http.MethodGet:
+		h.GetAllWorkoutsForUser(w, r)
+	case http.MethodPost:
+		h.CreateWorkout(w, r)
+	default:
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func (h *WorkoutHandler) GetWorkoutByUserIDAndDate(w http.ResponseWriter, r *http.Request) {
@@ -64,15 +67,19 @@ func (h *WorkoutHandler) GetWorkoutByUserIDAndDate(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var request struct {
-		WorkoutDate time.Time `json:"clientworkoutdate"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.SendError(w, "Invalid request body", http.StatusBadRequest)
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		response.SendError(w, "Date parameter is required in format: 2024-12-25", http.StatusBadRequest)
 		return
 	}
 
-	utcTime, err := utils.FromClientTimezoneToUTC(request.WorkoutDate, r)
+	workoutDate, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		response.SendError(w, "Invalid date format - use YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	utcTime, err := utils.FromClientTimezoneToUTC(workoutDate, r)
 	if err != nil {
 		response.SendError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -109,15 +116,29 @@ func (h *WorkoutHandler) GetAllWorkoutsForUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	response.SendSuccess(w, workouts)
+	// must convert to user's tz before returning data to user
+	var resp []WorkoutResponse
+	for _, workout := range workouts {
+		// convert UTC to client tz
+		clientTime, err := utils.FromUTCToClientTimezone(workout.WorkoutDate, r)
+		if err != nil {
+			response.SendError(w, "Timezone conversion error", http.StatusBadRequest)
+			return
+		}
+
+		resp = append(resp, WorkoutResponse{
+			WorkoutID:   workout.WorkoutID,
+			WorkoutDate: clientTime.Format("2006-01-02"),
+			Title:       workout.Title,
+			CreatedAt:   workout.CreatedAt,
+		})
+	}
+
+	response.SendSuccess(w, resp)
 }
 
 func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Title       string    `json:"title"` // name of workout, e.g. "Upper Body 2"
-		WorkoutDate time.Time `json:"clientworkoutdate"`
-	}
-
+	var request CreateWorkoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -129,17 +150,21 @@ func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utcTime, err := utils.FromClientTimezoneToUTC(request.WorkoutDate, r)
+	workoutDate := request.WorkoutDate.ToTime()
+
+	utcTime, err := utils.FromClientTimezoneToUTC(workoutDate, r)
 	if err != nil {
 		response.SendError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	workout, err := h.queries.CreateWorkout(r.Context(), sqlc.CreateWorkoutParams{
+	createWorkoutParams := sqlc.CreateWorkoutParams{
 		UserID:      utils.ToNullInt32(userID),
 		WorkoutDate: utcTime,
 		Title:       utils.ToNullString(request.Title),
-	})
+	}
+
+	workout, err := h.queries.CreateWorkout(r.Context(), createWorkoutParams)
 	if err != nil {
 		response.SendError(w, "Failed to create workout", http.StatusInternalServerError)
 		return

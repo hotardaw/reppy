@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
@@ -11,6 +12,29 @@ import (
 )
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"
+
+type CustomDate time.Time
+
+// Used to handle date formats in HTTP requests.
+func (c *CustomDate) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+
+	*c = CustomDate(t)
+	return nil
+}
+
+// Helper method; converts to time.Time
+func (c CustomDate) ToTime() time.Time {
+	return time.Time(c)
+}
 
 // Used to parse client's timezone from the custom HTTP header "X-User-Timezone" and convert the client's timezone to UTC, maintaining the same calendar date in client's time. Client must still send its current time in the request body.
 func FromClientTimezoneToUTC(clientTime time.Time, r *http.Request) (time.Time, error) {
@@ -33,6 +57,20 @@ func FromClientTimezoneToUTC(clientTime time.Time, r *http.Request) (time.Time, 
 	)
 
 	return utcTime, nil
+}
+
+func FromUTCToClientTimezone(utcTime time.Time, r *http.Request) (time.Time, error) {
+	timezone := r.Header.Get("X-User-Timezone")
+	if timezone == "" {
+		return utcTime, nil // fallback
+	}
+
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid timezone: %v", err)
+	}
+
+	return utcTime.In(loc), nil
 }
 
 func GetIDFromPath(path string) (int32, error) {

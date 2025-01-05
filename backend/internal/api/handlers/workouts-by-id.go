@@ -1,20 +1,18 @@
 // GET (ID only), PATCH, DELETE
+// In future: add a "CopyWorkoutByDate" so users can easily repeat workouts
 package handlers
 
 import (
 	"database/sql"
 	"encoding/json"
+	"net/http"
+
 	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/api/response"
 	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
-	"net/http"
-	"path"
-	"strings"
-	"time"
 )
 
-// GET, PATCH, DELETE w/ ID
 type WorkoutByIDHandler struct {
 	queries *sqlc.Queries
 }
@@ -25,15 +23,11 @@ func NewWorkoutByIDHandler(q *sqlc.Queries) *WorkoutByIDHandler {
 	}
 }
 
+type UpdateWorkoutByIDRequest struct {
+	Title string `json:"workouttitle"`
+}
+
 func (h *WorkoutByIDHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	parts := strings.Split(cleanPath, "/")
-
-	if len(parts) != 3 {
-		response.SendError(w, "Invalid URL - must be '/workouts/{workout_id}'", http.StatusBadRequest)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		h.GetWorkoutByIDForUser(w, r)
@@ -60,12 +54,12 @@ func (h *WorkoutByIDHandler) GetWorkoutByIDForUser(w http.ResponseWriter, r *htt
 		return
 	}
 
-	params := sqlc.GetWorkoutByIDForUserParams{
+	getWorkoutByIDForUserParams := sqlc.GetWorkoutByIDForUserParams{
 		WorkoutID: workoutID,
 		UserID:    utils.ToNullInt32(userID),
 	}
 
-	workout, err := h.queries.GetWorkoutByIDForUser(r.Context(), params)
+	workout, err := h.queries.GetWorkoutByIDForUser(r.Context(), getWorkoutByIDForUserParams)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)
@@ -91,29 +85,19 @@ func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var request struct {
-		WorkoutDate time.Time `json:"clientworkoutdate"`
-		Title       string    `json:"workouttitle"`
-	}
+	var request UpdateWorkoutByIDRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	utcTime, err := utils.FromClientTimezoneToUTC(request.WorkoutDate, r)
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusBadRequest)
-		return
+	updateWorkoutParams := sqlc.UpdateWorkoutParams{
+		Title:     utils.ToNullString(request.Title),
+		WorkoutID: workoutID,
+		UserID:    utils.ToNullInt32(userID),
 	}
 
-	params := sqlc.UpdateWorkoutParams{
-		WorkoutDate: utcTime,
-		Title:       utils.ToNullString(request.Title),
-		WorkoutID:   workoutID,
-		UserID:      utils.ToNullInt32(userID),
-	}
-
-	workout, err := h.queries.UpdateWorkout(r.Context(), params)
+	workout, err := h.queries.UpdateWorkout(r.Context(), updateWorkoutParams)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)
@@ -139,12 +123,12 @@ func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	params := sqlc.DeleteWorkoutParams{
+	deleteWorkoutParams := sqlc.DeleteWorkoutParams{
 		UserID:    utils.ToNullInt32(userID),
 		WorkoutID: workoutID,
 	}
 
-	deletedWorkoutID, err := h.queries.DeleteWorkout(r.Context(), params)
+	deletedWorkoutID, err := h.queries.DeleteWorkout(r.Context(), deleteWorkoutParams)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)

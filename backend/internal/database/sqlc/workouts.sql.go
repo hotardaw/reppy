@@ -183,18 +183,17 @@ func (q *Queries) GetWorkoutByUserIDAndDate(ctx context.Context, arg GetWorkoutB
 
 const updateWorkout = `-- name: UpdateWorkout :one
 UPDATE workouts
-SET workout_date = $1,
-  title = $2,
+SET 
+  title = $1,
   updated_at = CURRENT_TIMESTAMP
-WHERE workout_id = $3 AND user_id = $4
+WHERE workout_id = $2 AND user_id = $3
 RETURNING workout_id, workout_date, title, updated_at
 `
 
 type UpdateWorkoutParams struct {
-	WorkoutDate time.Time
-	Title       sql.NullString
-	WorkoutID   int32
-	UserID      sql.NullInt32
+	Title     sql.NullString
+	WorkoutID int32
+	UserID    sql.NullInt32
 }
 
 type UpdateWorkoutRow struct {
@@ -206,12 +205,7 @@ type UpdateWorkoutRow struct {
 
 // UPDATE: Modify an existing workout
 func (q *Queries) UpdateWorkout(ctx context.Context, arg UpdateWorkoutParams) (UpdateWorkoutRow, error) {
-	row := q.db.QueryRowContext(ctx, updateWorkout,
-		arg.WorkoutDate,
-		arg.Title,
-		arg.WorkoutID,
-		arg.UserID,
-	)
+	row := q.db.QueryRowContext(ctx, updateWorkout, arg.Title, arg.WorkoutID, arg.UserID)
 	var i UpdateWorkoutRow
 	err := row.Scan(
 		&i.WorkoutID,
