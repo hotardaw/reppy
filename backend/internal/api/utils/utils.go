@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"

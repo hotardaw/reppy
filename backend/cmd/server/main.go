@@ -86,6 +86,7 @@ func main() {
 	exerciseByIDHandler := handlers.NewExerciseByIDHandler(queries)
 	workoutHandler := handlers.NewWorkoutHandler(queries, jwtConfig.AccessSecret)
 	workoutByIDHandler := handlers.NewWorkoutByIDHandler(queries)
+	workoutSetHandler := handlers.NewWorkoutSetHandler(queries, jwtConfig.AccessSecret)
 
 	mux := http.NewServeMux()
 
@@ -105,6 +106,7 @@ func main() {
 	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))           // GET, PATCH, DELETE
 	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                       // GET(all),POST
 	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))              // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/workout-sets", protected(workoutSetHandler.HandleWorkoutSets))             // POST,
 
 	// Default/root handler
 	mux.HandleFunc("/", unprotected(func(w http.ResponseWriter, r *http.Request) {

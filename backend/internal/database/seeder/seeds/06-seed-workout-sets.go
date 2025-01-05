@@ -3,6 +3,7 @@ package seeds
 import (
 	"context"
 	"fmt"
+
 	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 )
