@@ -64,9 +64,8 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request SignupRequest
-
 	// copying CreateUser API pretty closely here to avoid calling an API from within an API
+	var request SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return

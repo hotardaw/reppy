@@ -13,7 +13,7 @@ type ExerciseHandler struct {
 	queries *sqlc.Queries
 }
 
-type createExerciseRequest struct {
+type CreateExerciseRequest struct {
 	ExerciseName string `json:"exercise_name"`
 	Description  string `json:"description"`
 }
@@ -60,16 +60,17 @@ func (h *ExerciseHandler) GetAllExercises(w http.ResponseWriter, r *http.Request
 }
 
 func (h *ExerciseHandler) CreateExercise(w http.ResponseWriter, r *http.Request) {
-	var request createExerciseRequest
+	var request CreateExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	exercise, err := h.queries.CreateExercise(r.Context(), sqlc.CreateExerciseParams{
+	createExerciseParams := sqlc.CreateExerciseParams{
 		ExerciseName: request.ExerciseName,
 		Description:  utils.ToNullString(request.Description),
-	})
+	}
+	exercise, err := h.queries.CreateExercise(r.Context(), createExerciseParams)
 	if err != nil {
 		response.SendError(w, "Failed to create exercise", http.StatusInternalServerError)
 		return

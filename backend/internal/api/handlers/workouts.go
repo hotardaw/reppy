@@ -85,12 +85,12 @@ func (h *WorkoutHandler) GetWorkoutByUserIDAndDate(w http.ResponseWriter, r *htt
 		return
 	}
 
-	params := sqlc.GetWorkoutByUserIDAndDateParams{
+	getWorkoutByUserIDAndDateParams := sqlc.GetWorkoutByUserIDAndDateParams{
 		UserID:      utils.ToNullInt32(userID),
 		WorkoutDate: utcTime,
 	}
 
-	workout, err := h.queries.GetWorkoutByUserIDAndDate(r.Context(), params)
+	workout, err := h.queries.GetWorkoutByUserIDAndDate(r.Context(), getWorkoutByUserIDAndDateParams)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)

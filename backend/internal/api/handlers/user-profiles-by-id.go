@@ -88,7 +88,7 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 		return
 	}
 
-	params := sqlc.UpdateUserProfileParams{
+	updateUserProfileParams := sqlc.UpdateUserProfileParams{
 		UserID:       utils.ToNullInt32(id),
 		FirstName:    utils.ToNullString(request.FirstName),
 		LastName:     utils.ToNullString(request.LastName),
@@ -104,10 +104,10 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 			response.SendError(w, "Invalid date format for date_of_birth; use YYYY-MM-DD", http.StatusBadRequest)
 			return
 		}
-		params.DateOfBirth = utils.ToNullTime(dob)
+		updateUserProfileParams.DateOfBirth = utils.ToNullTime(dob)
 	}
 
-	userProfile, err := h.queries.UpdateUserProfile(r.Context(), params)
+	userProfile, err := h.queries.UpdateUserProfile(r.Context(), updateUserProfileParams)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.SendError(w, "User not found", http.StatusNotFound)

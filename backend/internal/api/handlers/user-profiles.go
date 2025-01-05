@@ -21,6 +21,15 @@ func NewUserProfileHandler(q *sqlc.Queries) *UserProfileHandler {
 	}
 }
 
+type CreateUserProfileRequest struct {
+	UserID       int32  `json:"user_id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	DateOfBirth  string `json:"date_of_birth"`
+	Gender       string `json:"gender"`
+	HeightInches int32  `json:"height_inches"`
+}
+
 func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.Request) {
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
 	parts := strings.Split(cleanPath, "/")
@@ -79,15 +88,7 @@ func (h *UserProfileHandler) GetAllInactiveUserProfiles(w http.ResponseWriter, r
 }
 
 func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		UserID       int32  `json:"user_id"`
-		FirstName    string `json:"first_name"`
-		LastName     string `json:"last_name"`
-		DateOfBirth  string `json:"date_of_birth"`
-		Gender       string `json:"gender"`
-		HeightInches int32  `json:"height_inches"`
-	}
-
+	var request CreateUserProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -99,15 +100,15 @@ func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	profile, err := h.queries.CreateUserProfile(r.Context(), sqlc.CreateUserProfileParams{
+	createUserProfileParams := sqlc.CreateUserProfileParams{
 		UserID:       utils.ToNullInt32(request.UserID),
 		FirstName:    utils.ToNullString(request.FirstName),
 		LastName:     utils.ToNullString(request.LastName),
 		DateOfBirth:  utils.ToNullTime(dob),
 		Gender:       utils.ToNullString(request.Gender),
 		HeightInches: utils.ToNullInt32(request.HeightInches),
-	})
-
+	}
+	profile, err := h.queries.CreateUserProfile(r.Context(), createUserProfileParams)
 	if err != nil {
 		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return

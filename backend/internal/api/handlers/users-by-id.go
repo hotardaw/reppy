@@ -25,6 +25,12 @@ func NewUserByIDHandler(q *sqlc.Queries) *UserByIDHandler {
 	}
 }
 
+type UpdateUserRequest struct {
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
+	Username string `json:"username,omitempty"`
+}
+
 func (h *UserByIDHandler) HandleUserByID(w http.ResponseWriter, r *http.Request) {
 	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/")) // "/users/3"
 	parts := strings.Split(cleanPath, "/")
@@ -69,18 +75,13 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
-	var request struct {
-		Email    string `json:"email,omitempty"`
-		Password string `json:"password,omitempty"`
-		Username string `json:"username,omitempty"`
-	}
-
+	var request UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	params := sqlc.UpdateUserParams{
+	updateUserParams := sqlc.UpdateUserParams{
 		UserID:   int32(id),
 		Email:    request.Email,
 		Username: request.Username,
@@ -92,10 +93,10 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 			response.SendError(w, "Failed to process password", http.StatusInternalServerError)
 			return
 		}
-		params.PasswordHash = string(hashedPassword)
+		updateUserParams.PasswordHash = string(hashedPassword)
 	}
 
-	user, err := h.queries.UpdateUser(r.Context(), params)
+	user, err := h.queries.UpdateUser(r.Context(), updateUserParams)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.SendError(w, "User not found", http.StatusNotFound)

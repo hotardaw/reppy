@@ -51,7 +51,6 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var request CreateUserRequest
-
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -63,17 +62,17 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := sqlc.CreateUserParams{
+	createUserParams := sqlc.CreateUserParams{
 		Email:        request.Email,
 		PasswordHash: string(hashedPassword),
 		Username:     request.Username,
 	}
-	if params.Email == "" || params.PasswordHash == "" || params.Username == "" {
+	if createUserParams.Email == "" || createUserParams.PasswordHash == "" || createUserParams.Username == "" {
 		response.SendError(w, "All fields must be filled", http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.queries.CreateUser(r.Context(), params)
+	user, err := h.queries.CreateUser(r.Context(), createUserParams)
 	if err != nil {
 		if strings.Contains(err.Error(), "unique constraint") {
 			if strings.Contains(err.Error(), "email") {
