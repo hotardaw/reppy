@@ -27,7 +27,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_USER=user01
-      - DB_PASSWORD=pass01
+      - DB_PASSWORD=user01239nTGN35pio!$
       - DB_NAME=fitsyncdb
     depends_on:
       db:
@@ -39,7 +39,7 @@ services:
       - ./backend/internal/database/init:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_USER=user01
-      - POSTGRES_PASSWORD=pass01
+      - POSTGRES_PASSWORD=user01239nTGN35pio!$
       - POSTGRES_DB=fitsyncdb
     ports:
       - "8082:5432" #8082:5432 is for connecting to Postgres from outside Docker, e.g. using a db client on host machine
@@ -52,8 +52,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_DEFAULT_EMAIL=dev@test.com
+      - PGADMIN_DEFAULT_PASSWORD=123lng@#N5las
     ports:
       - "8083:80"
     volumes:
