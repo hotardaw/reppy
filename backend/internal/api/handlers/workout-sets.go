@@ -115,7 +115,7 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 
 	sets, err := h.queries.CreateWorkoutSets(r.Context(), params)
 	if err != nil {
-		response.SendError(w, "Failed to create workout set(s)", http.StatusInternalServerError)
+		response.SendError(w, "Failed to create workout set(s)"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

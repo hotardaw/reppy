@@ -23,9 +23,9 @@ func TimeoutMiddleware(timeout time.Duration) func(http.HandlerFunc) http.Handle
 			}()
 
 			select {
-			case <-done:
+			case <-done: // if handler completes normally
 				return
-			case <-ctx.Done():
+			case <-ctx.Done(): // if timeout expires
 				response.SendError(w, "Request timed out", http.StatusRequestTimeout)
 				return
 			}
