@@ -167,7 +167,7 @@ type WorkoutSet struct {
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
-	ResistanceValue  sql.NullInt32
+	ResistanceValue  sql.NullString
 	ResistanceType   NullResistanceTypeEnum
 	ResistanceDetail sql.NullString
 	Rpe              sql.NullString

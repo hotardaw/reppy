@@ -1,14 +1,14 @@
 -- name: CreateWorkoutSets :many
 WITH input_rows AS (
   SELECT 
-    unnest($1::int[]) workout_id,
-    unnest($2::int[]) exercise_id,
+    $1::int as workout_id,
+    $2::int as exercise_id,
     unnest($3::int[]) set_number,
     unnest($4::int[]) reps,
-    unnest($5::numeric[]) resistance_value,
-    unnest($6::resistance_type_enum[]) resistance_type,
+    NULLIF(unnest($5::text[]), '')::decimal resistance_value, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
+    NULLIF(unnest($6::text[]), '')::resistance_type_enum resistance_type,
     unnest($7::text[]) resistance_detail,
-    unnest($8::numeric[]) rpe,
+    NULLIF(unnest($8::text[]), '')::decimal rpe, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
     unnest($9::text[]) notes
 )
 INSERT INTO workout_sets 

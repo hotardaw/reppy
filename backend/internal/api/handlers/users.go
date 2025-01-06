@@ -3,12 +3,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 // Holds dependencies for user handlers

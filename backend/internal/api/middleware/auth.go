@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go-fitsync/backend/internal/api/response"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+
+	"go-fitsync/backend/internal/api/response"
 )
 
 var (

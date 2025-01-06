@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type UserByIDHandler struct {

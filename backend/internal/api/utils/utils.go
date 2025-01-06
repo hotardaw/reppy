@@ -164,3 +164,10 @@ func NullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum 
 		Valid:              true,
 	}
 }
+
+func NullFloat64FromFloat32Ptr(f *float32) sql.NullFloat64 {
+	if f == nil {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{Float64: float64(*f), Valid: true}
+}

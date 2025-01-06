@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strings"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type MuscleHandler struct {

@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strings"
 	"time"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type UserProfileHandler struct {

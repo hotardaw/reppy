@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"go-fitsync/backend/internal/api/middleware"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/database/sqlc"
 	"log"
 	"net/http"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"go-fitsync/backend/internal/api/middleware"
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type AuthHandler struct {

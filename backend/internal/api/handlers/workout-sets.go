@@ -1,4 +1,3 @@
-// def the most easily confusing handler, so i'll provide examples where i find them helpful
 package handlers
 
 import (
@@ -7,7 +6,6 @@ import (
 	"net/http"
 
 	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 )
 
@@ -25,27 +23,36 @@ func NewWorkoutSetHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutSetHandler 
 
 // req, resp structs
 type CreateWorkoutSetsRequest struct {
-	Sets []struct {
-		WorkoutID        int32    `json:"workout_id"`
-		ExerciseID       int32    `json:"exercise_id"`
-		SetCount         int32    `json:"set_count"` // make set_count since UI's only gonna have 1 input field?
-		Reps             *int32   `json:"reps,omitempty"`
-		ResistanceType   *string  `json:"resistance_type,omitempty"`
-		ResistanceValue  *float32 `json:"resistance_value,omitempty"`
-		ResistanceDetail *string  `json:"resistance_detail,omitempty"`
-		RPE              *float32 `json:"rpe,omitempty"`
-		Notes            *string  `json:"notes,omitempty"`
-	} `json:"sets"`
+	WorkoutID    int32 `json:"workout_id"`
+	ExerciseID   int32 `json:"exercise_id"`
+	NumberOfSets int32 `json:"number_of_sets"` // request JSON data will be duplicated this # of times for each set
+	// optional fields (nil if absent):
+	Reps             *int32  `json:"reps"`
+	ResistanceValue  *string `json:"resistance_value"`
+	ResistanceType   *string `json:"resistance_type"`
+	ResistanceDetail *string `json:"resistance_detail"`
+	RPE              *string `json:"rpe"`
+	Notes            *string `json:"notes"`
 }
 
 /*
-sample req body to test auto-incr for postman:
+sample req body to test auto-incr in postman:
 {
-  "sets": [
-    {"workout_id": 1, "exercise_id": 1, "set_count": 5},
-    {"workout_id": 1, "exercise_id": 1, "set_count": 2},
-    {"workout_id": 1, "exercise_id": 2, "set_count": 1}
-  ]
+  "workout_id": 1,
+  "exercise_id": 1,
+  "number_of_sets": 3,
+  "reps": 10,
+  "resistance_value": "135.5",
+  "resistance_type": "weight",
+  "resistance_detail": "barbell",
+  "rpe": "8"
+}
+
+sample minimal request:
+{
+    "workout_id": 1,
+    "exercise_id": 1,
+    "number_of_sets": 3
 }
 */
 
@@ -56,59 +63,63 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// Used for batch inserts and single inserts.
 func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request) {
 	var request CreateWorkoutSetsRequest
+	fmt.Println("Request: ", request)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	params := request.ToSQLCParams()
-	workoutSets, err := h.queries.CreateWorkoutSets(r.Context(), params)
-	if err != nil {
-		response.SendError(w, "Failed to create workout sets; "+err.Error(), http.StatusInternalServerError)
+	if request.NumberOfSets <= 0 {
+		response.SendError(w, "Number of sets must be greater than 0", http.StatusBadRequest)
 		return
 	}
 
-	response.SendSuccess(w, workoutSets, http.StatusCreated)
-}
-
-// Helper for converting request JSON to SQLc-friendly params
-func (r *CreateWorkoutSetsRequest) ToSQLCParams() sqlc.CreateWorkoutSetsParams {
-	n := len(r.Sets)
 	params := sqlc.CreateWorkoutSetsParams{
-		Column1: make([]int32, n),                   // workout_ids
-		Column2: make([]int32, n),                   // exercise_ids
-		Column3: make([]int32, n),                   // set_numbers
-		Column4: make([]int32, n),                   // reps
-		Column5: make([]string, n),                  // resistance_values
-		Column6: make([]sqlc.ResistanceTypeEnum, n), // resistance_types
-		Column7: make([]string, n),                  // resistance_details
-		Column8: make([]string, n),                  // rpes
-		Column9: make([]string, n),                  // notes
+		Column1: request.WorkoutID,                    // workout_id
+		Column2: request.ExerciseID,                   // exercise_id
+		Column3: make([]int32, request.NumberOfSets),  // set_number
+		Column4: make([]int32, request.NumberOfSets),  // reps
+		Column5: make([]string, request.NumberOfSets), // resistance_value
+		Column6: make([]string, request.NumberOfSets), // resistance_type
+		Column7: make([]string, request.NumberOfSets), // resistance_detail
+		Column8: make([]string, request.NumberOfSets), // rpe
+		Column9: make([]string, request.NumberOfSets), // notes
 	}
 
-	setCounter := make(map[string]int32) // key is a string like "1-2", meaning wkout_id 1, ex_id 2
+	for i := int32(0); i < request.NumberOfSets; i++ {
+		params.Column3[i] = i + 1 // auto-incr set nums starting with 1
 
-	for i, set := range r.Sets {
-		params.Column1[i] = set.WorkoutID
-		params.Column2[i] = set.ExerciseID
-
-		// make unioque key based on 2 vals for the wkout-exercise combo, since maps only use 1-piece keys
-		key := fmt.Sprintf("%d-%d", set.WorkoutID, set.ExerciseID)
-
-		setCounter[key]++
-		params.Column3[i] = setCounter[key]
-
-		// the ".Int32" and ".String" bits select the int32 & string values from the returned struct, implicitly discarding the "Valid" field from the sqlc type
-		params.Column4[i] = utils.NullIntFromIntPtr(set.Reps).Int32
-		params.Column5[i] = utils.NullStringFromFloat32Ptr(set.ResistanceValue).String
-		params.Column6[i] = utils.NullResistanceTypeEnumFromStringPtr(set.ResistanceType).ResistanceTypeEnum
-		params.Column7[i] = utils.NullStringFromStringPtr(set.ResistanceDetail).String
-		params.Column8[i] = utils.NullStringFromFloat32Ptr(set.RPE).String
-		params.Column9[i] = utils.NullStringFromStringPtr(set.Notes).String
+		if request.Reps != nil {
+			params.Column4[i] = *request.Reps
+		}
+		if request.ResistanceValue != nil {
+			params.Column5[i] = *request.ResistanceValue
+		}
+		if request.ResistanceType != nil {
+			params.Column6[i] = *request.ResistanceType
+		}
+		if request.ResistanceDetail != nil {
+			params.Column7[i] = *request.ResistanceDetail
+		}
+		if request.RPE != nil {
+			params.Column8[i] = *request.RPE
+		}
+		if request.Notes != nil {
+			params.Column9[i] = *request.Notes
+		}
 	}
 
-	return params
+	fmt.Println("Params: ", params)
+
+	sets, err := h.queries.CreateWorkoutSets(r.Context(), params)
+	if err != nil {
+		response.SendError(w, "Failed to create workout set(s)", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("Sets: ", sets)
+
+	response.SendSuccess(w, sets, http.StatusCreated)
 }

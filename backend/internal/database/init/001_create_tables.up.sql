@@ -51,11 +51,11 @@ CREATE TABLE workout_sets (
     exercise_id INTEGER REFERENCES exercises(exercise_id) NOT NULL,
     set_number INTEGER NOT NULL,          -- We'll handle this in the application layer
     reps INTEGER,                         -- Optional - filled in when performed
-    resistance_value INTEGER,             -- Optional - weight in lbs/kg
+    resistance_value DECIMAL(5,1),        -- Optional - weight in lbs/kg
     resistance_type resistance_type_enum, -- Optional - 'weight', 'band', 'bodyweight' only
     resistance_detail VARCHAR(100),       -- Optional - band color, cable attachment, etc.
     rpe DECIMAL(3,1),                     -- Optional
-    percent_1rm DECIMAL(4,1),             -- Optional, allows values like 77.5, 82.5, etc.
+    percent_1rm DECIMAL(4,1),             -- Optional
     notes TEXT,                           -- Optional
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (workout_id, exercise_id, set_number)

@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type UserProfileByIDHandler struct {

@@ -50,7 +50,7 @@ func GetTestUsers() []TestUser {
 		{ // User only, no profile, for /user-profiles testing
 			Email:    "hunter@test.com",
 			Password: "password789",
-			Username: "huntertracy",
+			Username: "huntertestuser",
 		},
 	}
 }

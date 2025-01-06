@@ -16,14 +16,14 @@ import (
 const createWorkoutSets = `-- name: CreateWorkoutSets :many
 WITH input_rows AS (
   SELECT 
-    unnest($1::int[]) workout_id,
-    unnest($2::int[]) exercise_id,
+    $1::int as workout_id,
+    $2::int as exercise_id,
     unnest($3::int[]) set_number,
     unnest($4::int[]) reps,
-    unnest($5::numeric[]) resistance_value,
-    unnest($6::resistance_type_enum[]) resistance_type,
+    NULLIF(unnest($5::text[]), '')::decimal resistance_value, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
+    NULLIF(unnest($6::text[]), '')::resistance_type_enum resistance_type,
     unnest($7::text[]) resistance_detail,
-    unnest($8::numeric[]) rpe,
+    NULLIF(unnest($8::text[]), '')::decimal rpe, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
     unnest($9::text[]) notes
 )
 INSERT INTO workout_sets 
@@ -33,12 +33,12 @@ RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistanc
 `
 
 type CreateWorkoutSetsParams struct {
-	Column1 []int32
-	Column2 []int32
+	Column1 int32
+	Column2 int32
 	Column3 []int32
 	Column4 []int32
 	Column5 []string
-	Column6 []ResistanceTypeEnum
+	Column6 []string
 	Column7 []string
 	Column8 []string
 	Column9 []string
@@ -46,8 +46,8 @@ type CreateWorkoutSetsParams struct {
 
 func (q *Queries) CreateWorkoutSets(ctx context.Context, arg CreateWorkoutSetsParams) ([]WorkoutSet, error) {
 	rows, err := q.db.QueryContext(ctx, createWorkoutSets,
-		pq.Array(arg.Column1),
-		pq.Array(arg.Column2),
+		arg.Column1,
+		arg.Column2,
 		pq.Array(arg.Column3),
 		pq.Array(arg.Column4),
 		pq.Array(arg.Column5),
@@ -147,7 +147,7 @@ type GetAllWorkoutSetsRow struct {
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
-	ResistanceValue  sql.NullInt32
+	ResistanceValue  sql.NullString
 	ResistanceType   NullResistanceTypeEnum
 	ResistanceDetail sql.NullString
 	Rpe              sql.NullString
@@ -216,7 +216,7 @@ type GetAllWorkoutSetsForUserOnDateRow struct {
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
-	ResistanceValue  sql.NullInt32
+	ResistanceValue  sql.NullString
 	ResistanceType   NullResistanceTypeEnum
 	ResistanceDetail sql.NullString
 	Rpe              sql.NullString
@@ -279,7 +279,7 @@ RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistanc
 
 type UpdateWorkoutSetDetailsParams struct {
 	Reps            sql.NullInt32
-	ResistanceValue sql.NullInt32
+	ResistanceValue sql.NullString
 	Rpe             sql.NullString
 	Notes           sql.NullString
 	WorkoutID       int32

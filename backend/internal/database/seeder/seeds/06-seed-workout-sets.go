@@ -78,78 +78,62 @@ func GetTestWorkoutSets() []TestWorkoutSets {
 func SeedWorkoutSets(queries *sqlc.Queries) error {
 	sets := GetTestWorkoutSets()
 
-	workoutIDs := make([]int32, len(sets))
-	exerciseIDs := make([]int32, len(sets))
-	setNumbers := make([]int32, len(sets))
-	reps := make([]int32, len(sets))
-	resistanceValues := make([]string, len(sets))
-	resistanceTypes := make([]sqlc.ResistanceTypeEnum, len(sets))
-	resistanceDetails := make([]string, len(sets))
-	rpes := make([]string, len(sets))
-	notes := make([]string, len(sets))
-
-	for i, set := range sets {
-		workoutIDs[i] = set.WorkoutID
-		exerciseIDs[i] = set.ExerciseID
-		setNumbers[i] = set.SetNumber
-		if set.Reps != nil {
-			reps[i] = *set.Reps
-		}
-		if set.ResistanceValue != nil {
-			resistanceValues[i] = fmt.Sprintf("%.1f", *set.ResistanceValue)
-		} else {
-			resistanceValues[i] = "0" // default if nil
-		}
-		if set.ResistanceType != nil {
-			resistanceTypes[i] = stringToResistanceType(*set.ResistanceType)
-		} else {
-			resistanceTypes[i] = stringToResistanceType("bodyweight") // default if nil
-		}
-		if set.ResistanceDetail != nil {
-			resistanceDetails[i] = *set.ResistanceDetail
-		} else {
-			resistanceDetails[i] = ""
-		}
-		if set.RPE != nil {
-			rpes[i] = fmt.Sprintf("%.1f", *set.RPE)
-		} else {
-			rpes[i] = "0"
-		}
-		if set.Notes != nil {
-			notes[i] = *set.Notes
-		} else {
-			notes[i] = ""
-		}
+	// group sets by workout_id & exercise_id
+	groupedSets := make(map[struct{ workoutID, exerciseID int32 }][]TestWorkoutSets)
+	for _, set := range sets {
+		key := struct{ workoutID, exerciseID int32 }{set.WorkoutID, set.ExerciseID}
+		groupedSets[key] = append(groupedSets[key], set)
 	}
 
-	_, err := queries.CreateWorkoutSets(context.Background(), sqlc.CreateWorkoutSetsParams{
-		Column1: workoutIDs,
-		Column2: exerciseIDs,
-		Column3: setNumbers,
-		Column4: reps,
-		Column5: resistanceValues,
-		Column6: resistanceTypes,
-		Column7: resistanceDetails,
-		Column8: rpes,
-		Column9: notes,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to seed workout-sets: %v", err)
+	// insert groups individually
+	for key, sets := range groupedSets {
+		setNumbers := make([]int32, len(sets))
+		reps := make([]int32, len(sets))
+		resistanceValues := make([]string, len(sets))
+		resistanceTypes := make([]string, len(sets)) // changed from []sqlc.ResistanceTypeEnum
+		resistanceDetails := make([]string, len(sets))
+		rpes := make([]string, len(sets))
+		notes := make([]string, len(sets))
+
+		for i, set := range sets {
+			setNumbers[i] = set.SetNumber
+			if set.Reps != nil {
+				reps[i] = *set.Reps
+			}
+			if set.ResistanceValue != nil {
+				resistanceValues[i] = fmt.Sprintf("%.1f", *set.ResistanceValue)
+			}
+			if set.ResistanceType != nil {
+				resistanceTypes[i] = strings.ToLower(*set.ResistanceType)
+			}
+			if set.ResistanceDetail != nil {
+				resistanceDetails[i] = *set.ResistanceDetail
+			}
+			if set.RPE != nil {
+				rpes[i] = fmt.Sprintf("%.1f", *set.RPE)
+			}
+			if set.Notes != nil {
+				notes[i] = *set.Notes
+			}
+		}
+
+		_, err := queries.CreateWorkoutSets(context.Background(), sqlc.CreateWorkoutSetsParams{
+			Column1: key.workoutID,  // single value
+			Column2: key.exerciseID, // single value
+			Column3: setNumbers,
+			Column4: reps,
+			Column5: resistanceValues,
+			Column6: resistanceTypes, // now just []string, SQL handles conversion
+			Column7: resistanceDetails,
+			Column8: rpes,
+			Column9: notes,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to seed workout-sets for workout %d, exercise %d: %v",
+				key.workoutID, key.exerciseID, err)
+		}
 	}
 
 	fmt.Println("Successfully seeded WORKOUT-SETS table")
 	return nil
-}
-
-func stringToResistanceType(s string) sqlc.ResistanceTypeEnum {
-	switch strings.ToLower(s) {
-	case "bodyweight":
-		return sqlc.ResistanceTypeEnumBodyweight
-	case "weight":
-		return sqlc.ResistanceTypeEnumWeight
-	case "band":
-		return sqlc.ResistanceTypeEnumBand
-	default:
-		return sqlc.ResistanceTypeEnumBodyweight
-	}
 }
