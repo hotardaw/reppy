@@ -32,7 +32,7 @@ type UpdateWorkoutSetByIDRequest struct {
 }
 
 func (h *WorkoutSetByIDHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Request) {
-	// Path: /workouts/{workout_id}/exercises/{exercise_id}/sets/{set_number}
+	// "/workouts/{workout_id}/exercises/{exercise_id}/sets/{set_number}""
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 7 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
@@ -57,17 +57,17 @@ func (h *WorkoutSetByIDHandler) HandleWorkoutSets(w http.ResponseWriter, r *http
 		return
 	}
 
-	switch r.Method {
+	switch r.Method { // "/workouts/{workout_id}/exercises/{exercise_id}/sets/{set_number}""
 	case http.MethodPatch:
-		h.UpdateWorkoutSetByID(w, r, workoutID, exerciseID, setNumber) // set ID in path
+		h.UpdateWorkoutSetByID(w, r, workoutID, exerciseID, setNumber)
 	case http.MethodDelete:
-		h.DeleteWorkoutSetByID(w, r, workoutID, exerciseID, setNumber) // set ID in path
+		h.DeleteWorkoutSetByID(w, r, workoutID, exerciseID, setNumber)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// set ID in path. If something doesn't work make sure everything is SetByID-related
+// set ID in path - if something doesn't work make sure everything is SetByID-related
 func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, exerciseID, setNumber int64) {
 	var request UpdateWorkoutSetByIDRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {

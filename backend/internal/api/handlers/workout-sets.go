@@ -25,7 +25,6 @@ func NewWorkoutSetHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutSetHandler 
 
 // req, resp structs
 type CreateWorkoutSetsRequest struct {
-	ExerciseID   int32 `json:"exercise_id"`
 	NumberOfSets int32 `json:"number_of_sets"` // request JSON data will be duplicated this # of times for each set
 	// optional fields (nil if absent):
 	Reps             *int32  `json:"reps"`
@@ -56,7 +55,7 @@ sample minimal request:
 */
 
 func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Request) {
-	// get workout_id from URL: "/workouts/{workout_id}/workout-sets"
+	// "/workouts/{workout_id}/workout-sets"
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 3 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
@@ -71,18 +70,26 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 
 	switch r.Method {
 	case http.MethodPost:
-		h.CreateWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
+		if len(pathParts) < 6 {
+			response.SendError(w, "Invalid path URL for creating sets", http.StatusBadRequest)
+			return
+		}
+		exerciseID, err := strconv.ParseInt(pathParts[4], 10, 32)
+		if err != nil {
+			response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
+			return
+		}
+		h.CreateWorkoutSets(w, r, workoutID, exerciseID) // "/workouts/{workout_id}/exercises/{exercise_id}/sets"
 	case http.MethodGet:
-		h.GetAllWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
+		h.GetAllWorkoutSets(w, r, workoutID) // "/workouts/{workout_id}/sets"
 	case http.MethodDelete:
-		h.DeleteAllWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
+		h.DeleteAllWorkoutSets(w, r, workoutID) // "/workouts/{workout_id}/sets"
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// no set ID in path
-func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
+func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int64) {
 	var request CreateWorkoutSetsRequest
 	fmt.Println("Request: ", request)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -100,7 +107,7 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 
 	params := sqlc.CreateWorkoutSetsParams{
 		Column1: int32(workoutID),                     // workout_id
-		Column2: request.ExerciseID,                   // exercise_id
+		Column2: int32(exerciseID),                    // exercise_id
 		Column3: make([]int32, request.NumberOfSets),  // set_number
 		Column4: make([]int32, request.NumberOfSets),  // reps
 		Column5: make([]string, request.NumberOfSets), // resistance_value
@@ -142,7 +149,6 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, sets, http.StatusCreated)
 }
 
-// no set ID in path
 func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
 	// ensure it's a user making their own request, only return that user's data
 

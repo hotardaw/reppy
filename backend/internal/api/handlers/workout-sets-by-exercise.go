@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,14 +21,10 @@ func NewWorkoutSetByExerciseHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutS
 	}
 }
 
-type DeleteWorkoutSetsByExerciseRequest struct {
-	ExerciseID int32 `json:"exercise_id"`
-}
-
 func (h *WorkoutSetByExerciseHandler) HandleWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request) {
-	// get workout_id from URL: "/workouts/{workout_id}/workout-sets"
+	// get workout_id from URL: "/workouts/{workout_id}/exercises/{exercise_id}/sets"
 	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 3 {
+	if len(pathParts) < 5 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
 		return
 	}
@@ -40,25 +35,25 @@ func (h *WorkoutSetByExerciseHandler) HandleWorkoutSetsByExercise(w http.Respons
 		return
 	}
 
+	exerciseID, err := strconv.ParseInt(pathParts[4], 10, 32)
+	if err != nil {
+		response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodDelete:
-		h.DeleteWorkoutSetsByExercise(w, r, workoutID) // exerciseID in path?
+		h.DeleteWorkoutSetsByExercise(w, r, workoutID, exerciseID) // "/workouts/{workout_id}/exercises/{exercise_id}/sets"
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 // no set ID in path
-func (h *WorkoutSetByExerciseHandler) DeleteWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	var request DeleteWorkoutSetsByExerciseRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.SendError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
+func (h *WorkoutSetByExerciseHandler) DeleteWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int64) {
 	params := sqlc.DeleteWorkoutSetsByExerciseParams{
 		WorkoutID:  int32(workoutID),
-		ExerciseID: request.ExerciseID,
+		ExerciseID: int32(exerciseID),
 	}
 
 	err := h.queries.DeleteWorkoutSetsByExercise(r.Context(), params)
