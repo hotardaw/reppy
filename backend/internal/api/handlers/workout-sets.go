@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
 	"go-fitsync/backend/internal/database/sqlc"
 )
 
@@ -35,27 +34,6 @@ type CreateWorkoutSetsRequest struct {
 	ResistanceDetail *string `json:"resistance_detail"`
 	RPE              *string `json:"rpe"`
 	Notes            *string `json:"notes"`
-}
-
-type UpdateWorkoutSetRequest struct {
-	ExerciseID int32 `json:"exercise_id"`
-	SetNumber  int32 `json:"set_number"`
-	// optional fields (nil if absent):
-	Reps             *int32  `json:"reps"`
-	ResistanceValue  *string `json:"resistance_value"`
-	ResistanceType   *string `json:"resistance_type"`
-	ResistanceDetail *string `json:"resistance_detail"`
-	RPE              *string `json:"rpe"`
-	Notes            *string `json:"notes"`
-}
-
-type DeleteWorkoutSetRequest struct {
-	ExerciseID int32 `json:"exercise_id"`
-	SetNumber  int32 `json:"set_number"`
-}
-
-type DeleteWorkoutSetsByExerciseRequest struct {
-	ExerciseID int32 `json:"exercise_id"`
 }
 
 /*
@@ -93,13 +71,11 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 
 	switch r.Method {
 	case http.MethodPost:
-		h.CreateWorkoutSets(w, r, workoutID) // requires workout_id
-	case http.MethodPatch:
-		h.UpdateWorkoutSet(w, r, workoutID) // requires workout_id
+		h.CreateWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
 	case http.MethodGet:
-		h.GetAllWorkoutSets(w, r, workoutID) // requires workout_id
+		h.GetAllWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
 	case http.MethodDelete:
-		h.DeleteWorkoutSet(w, r, workoutID) // requires workout_id
+		h.DeleteAllWorkoutSets(w, r, workoutID) // /workouts/{workout_id}/workout-sets
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -166,40 +142,6 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, sets, http.StatusCreated)
 }
 
-// set ID in path
-func (h *WorkoutSetHandler) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	var request UpdateWorkoutSetRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.SendError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if request.SetNumber != 1 {
-		response.SendError(w, "Number of sets being updated must be 1", http.StatusBadRequest)
-		return
-	}
-
-	params := sqlc.UpdateWorkoutSetParams{
-		ExerciseID:       request.ExerciseID,
-		SetNumber:        request.SetNumber,
-		Reps:             utils.ToNullInt32(request.Reps),
-		ResistanceValue:  utils.ToNullStringFromStringPtr(request.ResistanceValue),
-		ResistanceType:   utils.ToNullResistanceTypeEnumFromStringPtr(request.ResistanceType),
-		ResistanceDetail: utils.ToNullStringFromStringPtr(request.ResistanceDetail),
-		Rpe:              utils.ToNullStringFromStringPtr(request.RPE),
-		Notes:            utils.ToNullStringFromStringPtr(request.Notes),
-		WorkoutID:        int32(workoutID),
-	}
-
-	set, err := h.queries.UpdateWorkoutSet(r.Context(), params)
-	if err != nil {
-		response.SendError(w, "Failed to update workout set", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, set, http.StatusCreated)
-}
-
 // no set ID in path
 func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
 	// ensure it's a user making their own request, only return that user's data
@@ -213,52 +155,6 @@ func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, allWorkoutSets)
 }
 
-// set ID in path
-func (h *WorkoutSetHandler) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	var request DeleteWorkoutSetRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.SendError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	params := sqlc.DeleteWorkoutSetParams{
-		WorkoutID:  int32(workoutID),
-		ExerciseID: request.ExerciseID,
-		SetNumber:  request.SetNumber,
-	}
-
-	err := h.queries.DeleteWorkoutSet(r.Context(), params)
-	if err != nil {
-		response.SendError(w, "Failed to delete workout set", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, nil, http.StatusNoContent)
-}
-
-// no set ID in path
-func (h *WorkoutSetHandler) DeleteWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	var request DeleteWorkoutSetsByExerciseRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.SendError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	params := sqlc.DeleteWorkoutSetsByExerciseParams{
-		WorkoutID:  int32(workoutID),
-		ExerciseID: request.ExerciseID,
-	}
-
-	err := h.queries.DeleteWorkoutSetsByExercise(r.Context(), params)
-	if err != nil {
-		response.SendError(w, "Failed to delete workout sets by exercise", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, nil, http.StatusNoContent)
-}
-
-// no set ID in path
 func (h *WorkoutSetHandler) DeleteAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
 	// get user, ensure it's them deleting their own workout
 	err := h.queries.DeleteAllWorkoutSets(r.Context())

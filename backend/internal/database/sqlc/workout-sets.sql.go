@@ -99,21 +99,21 @@ func (q *Queries) DeleteAllWorkoutSets(ctx context.Context) error {
 	return err
 }
 
-const deleteWorkoutSet = `-- name: DeleteWorkoutSet :exec
+const deleteWorkoutSetByID = `-- name: DeleteWorkoutSetByID :exec
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
 AND exercise_id = $2 
 AND set_number = $3
 `
 
-type DeleteWorkoutSetParams struct {
+type DeleteWorkoutSetByIDParams struct {
 	WorkoutID  int32
 	ExerciseID int32
 	SetNumber  int32
 }
 
-func (q *Queries) DeleteWorkoutSet(ctx context.Context, arg DeleteWorkoutSetParams) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkoutSet, arg.WorkoutID, arg.ExerciseID, arg.SetNumber)
+func (q *Queries) DeleteWorkoutSetByID(ctx context.Context, arg DeleteWorkoutSetByIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteWorkoutSetByID, arg.WorkoutID, arg.ExerciseID, arg.SetNumber)
 	return err
 }
 
@@ -194,7 +194,7 @@ func (q *Queries) GetAllWorkoutSets(ctx context.Context, workoutID int32) ([]Get
 	return items, nil
 }
 
-const updateWorkoutSet = `-- name: UpdateWorkoutSet :one
+const updateWorkoutSetByID = `-- name: UpdateWorkoutSetByID :one
 UPDATE workout_sets 
 SET 
   reps = $3,
@@ -209,7 +209,7 @@ AND set_number = $2
 RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
-type UpdateWorkoutSetParams struct {
+type UpdateWorkoutSetByIDParams struct {
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
@@ -222,8 +222,8 @@ type UpdateWorkoutSetParams struct {
 }
 
 // Make batch version of this later
-func (q *Queries) UpdateWorkoutSet(ctx context.Context, arg UpdateWorkoutSetParams) (WorkoutSet, error) {
-	row := q.db.QueryRowContext(ctx, updateWorkoutSet,
+func (q *Queries) UpdateWorkoutSetByID(ctx context.Context, arg UpdateWorkoutSetByIDParams) (WorkoutSet, error) {
+	row := q.db.QueryRowContext(ctx, updateWorkoutSetByID,
 		arg.ExerciseID,
 		arg.SetNumber,
 		arg.Reps,

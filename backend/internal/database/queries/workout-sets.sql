@@ -28,7 +28,7 @@ WHERE ws.workout_id = $1
 ORDER BY ws.exercise_id, ws.set_number;
 
 -- Make batch version of this later
--- name: UpdateWorkoutSet :one
+-- name: UpdateWorkoutSetByID :one
 UPDATE workout_sets 
 SET 
   reps = $3,
@@ -42,7 +42,7 @@ AND exercise_id = $1
 AND set_number = $2
 RETURNING *;
 
--- name: DeleteWorkoutSet :exec
+-- name: DeleteWorkoutSetByID :exec
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
 AND exercise_id = $2 
