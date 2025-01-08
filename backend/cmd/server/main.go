@@ -97,16 +97,16 @@ func main() {
 	mux.HandleFunc("/logout", unprotected(authHandler.HandleLogout))
 
 	// User routes
-	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                // GET(all), POST
-	mux.HandleFunc("/users/", protected(userByIDHandler.HandleUserByID))                        // GET, PATCH, DELETE w/ ID
-	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))          // GET(all), GET(active), POST
-	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID)) // GET, PATCH, DELETE w/ ID
-	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                          // GET, POST, DELETE
-	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                    // GET(all), POST
-	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))           // GET, PATCH, DELETE
-	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                       // GET(all),POST
-	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))              // GET, PATCH, DELETE w/ ID
-	mux.HandleFunc("/workout-sets", protected(workoutSetHandler.HandleWorkoutSets))             // POST,
+	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                          // GET(all), POST
+	mux.HandleFunc("/users/", protected(userByIDHandler.HandleUserByID))                                  // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/user-profiles", protected(userProfileHandler.HandleUserProfiles))                    // GET(all), GET(active), POST
+	mux.HandleFunc("/user-profiles/", protected(userProfileByIDHandler.HandleUserProfilesByID))           // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/muscles", protected(muscleHandler.HandleMuscles))                                    // GET, POST, DELETE
+	mux.HandleFunc("/exercises", protected(exerciseHandler.HandleExercises))                              // GET(all), POST
+	mux.HandleFunc("/exercises/", protected(exerciseByIDHandler.HandleExercisesByID))                     // GET, PATCH, DELETE
+	mux.HandleFunc("/workouts", protected(workoutHandler.HandleWorkouts))                                 // GET(all),POST
+	mux.HandleFunc("/workouts/", protected(workoutByIDHandler.HandleWorkoutsByID))                        // GET, PATCH, DELETE w/ ID
+	mux.HandleFunc("/workouts/{workout_id}/workout-sets", protected(workoutSetHandler.HandleWorkoutSets)) // POST,
 
 	// Default/root handler
 	mux.HandleFunc("/", unprotected(func(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +123,7 @@ func main() {
         <li>/exercises</li>
         <li>/workouts</li>
         <li>/workouts/{workout_id}</li>
+        <li>/workouts/{workout_id}/sets</li>
 				
         <h2>in progress:</h2>
         <li>/workout-sets</li>

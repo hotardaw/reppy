@@ -8,7 +8,6 @@ package sqlc
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/lib/pq"
 )
@@ -20,10 +19,10 @@ WITH input_rows AS (
     $2::int as exercise_id,
     unnest($3::int[]) set_number,
     unnest($4::int[]) reps,
-    NULLIF(unnest($5::text[]), '')::decimal resistance_value, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
+    NULLIF(unnest($5::text[]), '')::decimal resistance_value,
     NULLIF(unnest($6::text[]), '')::resistance_type_enum resistance_type,
     unnest($7::text[]) resistance_detail,
-    NULLIF(unnest($8::text[]), '')::decimal rpe, -- accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
+    NULLIF(unnest($8::text[]), '')::decimal rpe,
     unnest($9::text[]) notes
 )
 INSERT INTO workout_sets 
@@ -44,6 +43,8 @@ type CreateWorkoutSetsParams struct {
 	Column9 []string
 }
 
+// RE: the "NULLIF" lines:
+// they accept text arrays, convert empty strings to NULL, then cast non-NULL values to decimal
 func (q *Queries) CreateWorkoutSets(ctx context.Context, arg CreateWorkoutSetsParams) ([]WorkoutSet, error) {
 	rows, err := q.db.QueryContext(ctx, createWorkoutSets,
 		arg.Column1,
@@ -98,22 +99,6 @@ func (q *Queries) DeleteAllWorkoutSets(ctx context.Context) error {
 	return err
 }
 
-const deleteWorkoutExercise = `-- name: DeleteWorkoutExercise :exec
-DELETE FROM workout_sets 
-WHERE workout_id = $1 
-AND exercise_id = $2
-`
-
-type DeleteWorkoutExerciseParams struct {
-	WorkoutID  int32
-	ExerciseID int32
-}
-
-func (q *Queries) DeleteWorkoutExercise(ctx context.Context, arg DeleteWorkoutExerciseParams) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkoutExercise, arg.WorkoutID, arg.ExerciseID)
-	return err
-}
-
 const deleteWorkoutSet = `-- name: DeleteWorkoutSet :exec
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
@@ -129,6 +114,22 @@ type DeleteWorkoutSetParams struct {
 
 func (q *Queries) DeleteWorkoutSet(ctx context.Context, arg DeleteWorkoutSetParams) error {
 	_, err := q.db.ExecContext(ctx, deleteWorkoutSet, arg.WorkoutID, arg.ExerciseID, arg.SetNumber)
+	return err
+}
+
+const deleteWorkoutSetsByExercise = `-- name: DeleteWorkoutSetsByExercise :exec
+DELETE FROM workout_sets 
+WHERE workout_id = $1 
+AND exercise_id = $2
+`
+
+type DeleteWorkoutSetsByExerciseParams struct {
+	WorkoutID  int32
+	ExerciseID int32
+}
+
+func (q *Queries) DeleteWorkoutSetsByExercise(ctx context.Context, arg DeleteWorkoutSetsByExerciseParams) error {
+	_, err := q.db.ExecContext(ctx, deleteWorkoutSetsByExercise, arg.WorkoutID, arg.ExerciseID)
 	return err
 }
 
@@ -193,26 +194,22 @@ func (q *Queries) GetAllWorkoutSets(ctx context.Context, workoutID int32) ([]Get
 	return items, nil
 }
 
-const getAllWorkoutSetsForUserOnDate = `-- name: GetAllWorkoutSetsForUserOnDate :many
-SELECT 
-  ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.resistance_value, ws.resistance_type, ws.resistance_detail, ws.rpe, ws.percent_1rm, ws.notes, ws.created_at,
-  e.exercise_name,
-  w.workout_date
-FROM workout_sets ws
-JOIN workouts w ON ws.workout_id = w.workout_id
-JOIN exercises e ON ws.exercise_id = e.exercise_id
-WHERE w.user_id = $1 
-AND w.workout_date = $2
-ORDER BY ws.created_at, ws.exercise_id, ws.set_number
+const updateWorkoutSet = `-- name: UpdateWorkoutSet :one
+UPDATE workout_sets 
+SET 
+  reps = $3,
+  resistance_value = $4,
+  resistance_type = $5,
+  resistance_detail = $6,
+  rpe = $7,
+  notes = $8
+WHERE workout_id = $9 
+AND exercise_id = $1 
+AND set_number = $2
+RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
-type GetAllWorkoutSetsForUserOnDateParams struct {
-	UserID      sql.NullInt32
-	WorkoutDate time.Time
-}
-
-type GetAllWorkoutSetsForUserOnDateRow struct {
-	WorkoutID        int32
+type UpdateWorkoutSetParams struct {
 	ExerciseID       int32
 	SetNumber        int32
 	Reps             sql.NullInt32
@@ -220,83 +217,22 @@ type GetAllWorkoutSetsForUserOnDateRow struct {
 	ResistanceType   NullResistanceTypeEnum
 	ResistanceDetail sql.NullString
 	Rpe              sql.NullString
-	Percent1rm       sql.NullString
 	Notes            sql.NullString
-	CreatedAt        sql.NullTime
-	ExerciseName     string
-	WorkoutDate      time.Time
+	WorkoutID        int32
 }
 
-func (q *Queries) GetAllWorkoutSetsForUserOnDate(ctx context.Context, arg GetAllWorkoutSetsForUserOnDateParams) ([]GetAllWorkoutSetsForUserOnDateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllWorkoutSetsForUserOnDate, arg.UserID, arg.WorkoutDate)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllWorkoutSetsForUserOnDateRow
-	for rows.Next() {
-		var i GetAllWorkoutSetsForUserOnDateRow
-		if err := rows.Scan(
-			&i.WorkoutID,
-			&i.ExerciseID,
-			&i.SetNumber,
-			&i.Reps,
-			&i.ResistanceValue,
-			&i.ResistanceType,
-			&i.ResistanceDetail,
-			&i.Rpe,
-			&i.Percent1rm,
-			&i.Notes,
-			&i.CreatedAt,
-			&i.ExerciseName,
-			&i.WorkoutDate,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateWorkoutSetDetails = `-- name: UpdateWorkoutSetDetails :one
-UPDATE workout_sets 
-SET 
-  reps = $1,
-  resistance_value = $2,
-  rpe = $3,
-  notes = $4
-WHERE workout_id = $5 
-AND exercise_id = $6 
-AND set_number = $7
-RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
-`
-
-type UpdateWorkoutSetDetailsParams struct {
-	Reps            sql.NullInt32
-	ResistanceValue sql.NullString
-	Rpe             sql.NullString
-	Notes           sql.NullString
-	WorkoutID       int32
-	ExerciseID      int32
-	SetNumber       int32
-}
-
-// Gotta make a batch version of this later
-func (q *Queries) UpdateWorkoutSetDetails(ctx context.Context, arg UpdateWorkoutSetDetailsParams) (WorkoutSet, error) {
-	row := q.db.QueryRowContext(ctx, updateWorkoutSetDetails,
+// Make batch version of this later
+func (q *Queries) UpdateWorkoutSet(ctx context.Context, arg UpdateWorkoutSetParams) (WorkoutSet, error) {
+	row := q.db.QueryRowContext(ctx, updateWorkoutSet,
+		arg.ExerciseID,
+		arg.SetNumber,
 		arg.Reps,
 		arg.ResistanceValue,
+		arg.ResistanceType,
+		arg.ResistanceDetail,
 		arg.Rpe,
 		arg.Notes,
 		arg.WorkoutID,
-		arg.ExerciseID,
-		arg.SetNumber,
 	)
 	var i WorkoutSet
 	err := row.Scan(

@@ -131,29 +131,28 @@ func IntPtr(i int32) *int32         { return &i }
 func StrPtr(s string) *string       { return &s }
 func Float32Ptr(f float32) *float32 { return &f }
 
-// For converting pointers to SQL null types
-func NullIntFromIntPtr(i *int32) sql.NullInt32 {
+func ToNullIntFromIntPtr(i *int32) sql.NullInt32 {
 	if i == nil {
 		return sql.NullInt32{}
 	}
 	return sql.NullInt32{Int32: *i, Valid: true}
 }
 
-func NullStringFromStringPtr(s *string) sql.NullString {
+func ToNullStringFromStringPtr(s *string) sql.NullString {
 	if s == nil {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
 }
 
-func NullStringFromFloat32Ptr(f *float32) sql.NullString {
+func ToNullStringFromFloat32Ptr(f *float32) sql.NullString {
 	if f == nil {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: fmt.Sprintf("%.1f", *f), Valid: true}
 }
 
-func NullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum {
+func ToNullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum {
 	if s == nil {
 		return sqlc.NullResistanceTypeEnum{
 			Valid: false,
@@ -165,7 +164,7 @@ func NullResistanceTypeEnumFromStringPtr(s *string) sqlc.NullResistanceTypeEnum 
 	}
 }
 
-func NullFloat64FromFloat32Ptr(f *float32) sql.NullFloat64 {
+func ToNullFloat64FromFloat32Ptr(f *float32) sql.NullFloat64 {
 	if f == nil {
 		return sql.NullFloat64{}
 	}
