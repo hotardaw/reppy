@@ -92,10 +92,20 @@ func (q *Queries) CreateWorkoutSets(ctx context.Context, arg CreateWorkoutSetsPa
 
 const deleteAllWorkoutSets = `-- name: DeleteAllWorkoutSets :exec
 DELETE FROM workout_sets
+WHERE workout_id = $1
 `
 
-func (q *Queries) DeleteAllWorkoutSets(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, deleteAllWorkoutSets)
+func (q *Queries) DeleteAllWorkoutSets(ctx context.Context, workoutID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteAllWorkoutSets, workoutID)
+	return err
+}
+
+const deleteAllWorkoutSetsUnconditional = `-- name: DeleteAllWorkoutSetsUnconditional :exec
+DELETE FROM workout_sets
+`
+
+func (q *Queries) DeleteAllWorkoutSetsUnconditional(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllWorkoutSetsUnconditional)
 	return err
 }
 

@@ -13,6 +13,7 @@ import (
 )
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"
+// isValidEmail, isValidPassword, isValidUsername funcs for user APIs
 
 type CustomDate time.Time
 

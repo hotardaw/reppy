@@ -9,7 +9,7 @@ import (
 
 func cleanTestData(queries *sqlc.Queries) error {
 	// start by deleting tables with the most FDs (workout sets), then work inwards toward those depended on most often (users)
-	err := queries.DeleteAllWorkoutSets(context.Background())
+	err := queries.DeleteAllWorkoutSetsUnconditional(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to clean workout-sets: %v", err)
 	}

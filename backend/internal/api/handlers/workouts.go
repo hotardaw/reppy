@@ -49,60 +49,18 @@ func (h *WorkoutHandler) HandleWorkouts(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// base path
 	switch r.Method {
-	case http.MethodGet:
-		h.GetAllWorkoutsForUser(w, r)
 	case http.MethodPost:
 		h.CreateWorkout(w, r)
+	case http.MethodGet:
+		h.GetAllWorkoutsForUser(w, r)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
-func (h *WorkoutHandler) GetWorkoutByUserIDAndDate(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r.Context())
-	if err != nil {
-		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	dateStr := r.URL.Query().Get("date")
-	if dateStr == "" {
-		response.SendError(w, "Date parameter is required in format: 2024-12-25", http.StatusBadRequest)
-		return
-	}
-
-	workoutDate, err := time.Parse("2006-01-02", dateStr)
-	if err != nil {
-		response.SendError(w, "Invalid date format - use YYYY-MM-DD", http.StatusBadRequest)
-		return
-	}
-
-	utcTime, err := utils.FromClientTimezoneToUTC(workoutDate, r)
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	getWorkoutByUserIDAndDateParams := sqlc.GetWorkoutByUserIDAndDateParams{
-		UserID:      utils.ToNullInt32(userID),
-		WorkoutDate: utcTime,
-	}
-
-	workout, err := h.queries.GetWorkoutByUserIDAndDate(r.Context(), getWorkoutByUserIDAndDateParams)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			response.SendError(w, "Workout not found", http.StatusNotFound)
-			return
-		}
-		response.SendError(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, workout)
-}
-
+// "/workouts"
 func (h *WorkoutHandler) GetAllWorkoutsForUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
@@ -137,6 +95,49 @@ func (h *WorkoutHandler) GetAllWorkoutsForUser(w http.ResponseWriter, r *http.Re
 	response.SendSuccess(w, resp)
 }
 
+// "/workouts?date=2024-01-05"
+func (h *WorkoutHandler) GetWorkoutByUserIDAndDate(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil {
+		response.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		response.SendError(w, "Date parameter is required in format: 2024-12-25", http.StatusBadRequest)
+		return
+	}
+
+	workoutDate, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		response.SendError(w, "Invalid date format - use YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	utcTime, err := utils.FromClientTimezoneToUTC(workoutDate, r)
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	workout, err := h.queries.GetWorkoutByUserIDAndDate(r.Context(), sqlc.GetWorkoutByUserIDAndDateParams{
+		UserID:      utils.ToNullInt32(userID),
+		WorkoutDate: utcTime,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.SendError(w, "Workout not found", http.StatusNotFound)
+			return
+		}
+		response.SendError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, workout)
+}
+
+// "/workouts"
 func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	var request CreateWorkoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -158,13 +159,11 @@ func (h *WorkoutHandler) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createWorkoutParams := sqlc.CreateWorkoutParams{
+	workout, err := h.queries.CreateWorkout(r.Context(), sqlc.CreateWorkoutParams{
 		UserID:      utils.ToNullInt32(userID),
 		WorkoutDate: utcTime,
 		Title:       utils.ToNullString(request.Title),
-	}
-
-	workout, err := h.queries.CreateWorkout(r.Context(), createWorkoutParams)
+	})
 	if err != nil {
 		response.SendError(w, "Failed to create workout", http.StatusInternalServerError)
 		return

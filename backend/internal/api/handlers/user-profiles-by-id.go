@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go-fitsync/backend/internal/api/response"
@@ -49,11 +47,12 @@ func (h *UserProfileByIDHandler) HandleUserProfilesByID(w http.ResponseWriter, r
 	case http.MethodDelete:
 		h.DeleteUserProfile(w, r, id)
 	default:
-		response.SendError(w, "Method not allowed - only GET, PATCH, and DELETE", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 }
 
+// "/user-profiles/{id}"
 func (h *UserProfileByIDHandler) GetUserProfile(w http.ResponseWriter, r *http.Request, id int) {
 	userProfile, err := h.queries.GetUserProfile(r.Context(), utils.ToNullInt32(id))
 	if err == sql.ErrNoRows {
@@ -68,6 +67,7 @@ func (h *UserProfileByIDHandler) GetUserProfile(w http.ResponseWriter, r *http.R
 	response.SendSuccess(w, userProfile)
 }
 
+// "/user-profiles/{id}"
 func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request, id int) {
 	var request UpdateUserProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -106,6 +106,7 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 	response.SendSuccess(w, userProfile)
 }
 
+// "/user-profiles/{id}"
 func (h *UserProfileByIDHandler) DeleteUserProfile(w http.ResponseWriter, r *http.Request, id int) {
 	userProfile, err := h.queries.DeleteUserProfile(r.Context(), utils.ToNullInt32(id))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -118,12 +119,4 @@ func (h *UserProfileByIDHandler) DeleteUserProfile(w http.ResponseWriter, r *htt
 	}
 
 	response.SendSuccess(w, userProfile, http.StatusOK) // Not StatusNoContent bc this is a soft delete
-}
-
-func parseUserID(path string) (int, error) {
-	parts := strings.Split(path, "/")
-	if len(parts) < 3 {
-		return 0, errors.New("invalid path format")
-	}
-	return strconv.Atoi(parts[2])
 }

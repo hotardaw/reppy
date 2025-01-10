@@ -18,31 +18,32 @@ func NewExerciseByIDHandler(q *sqlc.Queries) *ExerciseByIDHandler {
 }
 
 func (h *ExerciseByIDHandler) HandleExercisesByID(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/exercises/")
-	if id == "" {
+	idStr := strings.TrimPrefix(r.URL.Path, "/exercises/")
+	if idStr == "" {
 		response.SendError(w, "Missing exercise ID", http.StatusBadRequest)
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		h.GetExerciseByID(w, r, id)
-	case http.MethodDelete:
-		h.DeleteExercise(w, r, id)
-	default:
-		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-// "/exercises/"
-func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Request, idStr string) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
 		return
 	}
 
-	exercise, err := h.queries.GetExerciseById(r.Context(), int32(id))
+	switch r.Method {
+	case http.MethodGet:
+		h.GetExerciseByID(w, r, int32(id))
+	case http.MethodDelete:
+		h.DeleteExercise(w, r, int32(id))
+	default:
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+// "/exercises/"
+func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Request, id int32) {
+	exercise, err := h.queries.GetExerciseById(r.Context(), id)
 	if err != nil {
 		response.SendError(w, "Exercise not found", http.StatusNotFound)
 		return
@@ -52,14 +53,8 @@ func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Req
 }
 
 // "/exercises/"
-func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Request, idStr string) {
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
-		return
-	}
-
-	exercise, err := h.queries.DeleteExercise(r.Context(), int32(id))
+func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Request, id int32) {
+	exercise, err := h.queries.DeleteExercise(r.Context(), id)
 	if err != nil {
 		response.SendError(w, "Failed to delete exercise", http.StatusInternalServerError)
 		return

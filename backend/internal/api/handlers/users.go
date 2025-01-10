@@ -12,7 +12,6 @@ import (
 	"go-fitsync/backend/internal/database/sqlc"
 )
 
-// Holds dependencies for user handlers
 type UserHandler struct {
 	queries *sqlc.Queries
 }
@@ -31,25 +30,17 @@ type CreateUserRequest struct {
 
 func (h *UserHandler) HandleUsers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
-		h.GetAllUsers(w, r)
 	case http.MethodPost:
 		h.CreateUser(w, r)
+	case http.MethodGet:
+		h.GetAllUsers(w, r)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.queries.GetAllUsers(r.Context())
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	response.SendSuccess(w, users)
 }
 
+// "/users"
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var request CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -88,4 +79,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccess(w, user, http.StatusCreated)
+}
+
+func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := h.queries.GetAllUsers(r.Context())
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, users)
 }

@@ -54,4 +54,9 @@ WHERE workout_id = $1
 AND exercise_id = $2;
 
 -- name: DeleteAllWorkoutSets :exec
+DELETE FROM workout_sets
+WHERE workout_id = $1;
+
+-- Used in seeder cleanup ONLY
+-- name: DeleteAllWorkoutSetsUnconditional :exec
 DELETE FROM workout_sets;

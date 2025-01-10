@@ -25,7 +25,6 @@ func NewExerciseHandler(q *sqlc.Queries) *ExerciseHandler {
 func (h *ExerciseHandler) HandleExercises(w http.ResponseWriter, r *http.Request) {
 	if name := r.URL.Query().Get("name"); name != "" {
 		h.GetExerciseByName(w, r)
-		return
 	}
 
 	switch r.Method {
@@ -35,6 +34,7 @@ func (h *ExerciseHandler) HandleExercises(w http.ResponseWriter, r *http.Request
 		h.GetAllExercises(w, r)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
@@ -46,11 +46,10 @@ func (h *ExerciseHandler) CreateExercise(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	createExerciseParams := sqlc.CreateExerciseParams{
+	exercise, err := h.queries.CreateExercise(r.Context(), sqlc.CreateExerciseParams{
 		ExerciseName: request.ExerciseName,
 		Description:  utils.ToNullString(request.Description),
-	}
-	exercise, err := h.queries.CreateExercise(r.Context(), createExerciseParams)
+	})
 	if err != nil {
 		response.SendError(w, "Failed to create exercise", http.StatusInternalServerError)
 		return
@@ -75,7 +74,7 @@ func (h *ExerciseHandler) GetExerciseByName(w http.ResponseWriter, r *http.Reque
 func (h *ExerciseHandler) GetAllExercises(w http.ResponseWriter, r *http.Request) {
 	exercises, err := h.queries.GetAllExercises(r.Context())
 	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, "Failed to retrieve all exercises", http.StatusInternalServerError)
 		return
 	}
 

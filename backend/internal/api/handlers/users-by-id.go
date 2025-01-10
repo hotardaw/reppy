@@ -1,4 +1,3 @@
-// For /users/{id} endpoint - specific users only
 package handlers
 
 import (
@@ -6,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 
@@ -33,34 +31,28 @@ type UpdateUserRequest struct {
 }
 
 func (h *UserByIDHandler) HandleUserByID(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/")) // "/users/3"
-	parts := strings.Split(cleanPath, "/")
-
-	if len(parts) != 3 { // /users/{id} should have exactly 3 parts
-		response.SendError(w, "Invalid URL format - must be '/users/{user_id}'", http.StatusBadRequest)
+	userID, err := parseUserID(r.URL.Path)
+	if err != nil {
+		response.SendError(w, "Invalid user ID in URL", http.StatusBadRequest)
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		h.GetUser(w, r, parts)
+		h.GetUser(w, r, int32(userID))
 	case http.MethodPatch:
-		h.UpdateUser(w, r, parts)
+		h.UpdateUser(w, r, int32(userID))
 	case http.MethodDelete:
-		h.DeleteUser(w, r, parts)
+		h.DeleteUser(w, r, int32(userID))
 	default:
-		response.SendError(w, "Method not allowed - only GetUser, UpdateUser, and DeleteUser at path '/users/{user_id}'", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
-func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, parts []string) {
-	id, err := strconv.Atoi(parts[2])
-	if err != nil {
-		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.queries.GetUser(r.Context(), int32(id))
+// "/users/{id}"
+func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, userID int32) {
+	user, err := h.queries.GetUser(r.Context(), userID)
 	if err != nil {
 		response.SendError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -69,21 +61,22 @@ func (h *UserByIDHandler) GetUser(w http.ResponseWriter, r *http.Request, parts 
 	response.SendSuccess(w, user)
 }
 
-func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, parts []string) {
-	id, err := strconv.Atoi(parts[2])
-	if err != nil {
-		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
+// use utils.isValidXYZ to validate email, un, pw
+// "/users/{id}"
+func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, userID int32) {
 	var request UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	if request.Email == "" && request.Password == "" && request.Username == "" {
+		response.SendError(w, "No fields to update", http.StatusBadRequest)
+		return
+	}
+
 	updateUserParams := sqlc.UpdateUserParams{
-		UserID:   int32(id),
+		UserID:   userID,
 		Email:    request.Email,
 		Username: request.Username,
 	}
@@ -103,7 +96,6 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 			response.SendError(w, "User not found", http.StatusNotFound)
 			return
 		}
-		// handle dupes
 		if strings.Contains(err.Error(), "unique constraint") {
 			if strings.Contains(err.Error(), "email") {
 				response.SendError(w, "Email already in use", http.StatusConflict)
@@ -121,14 +113,9 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, par
 	response.SendSuccess(w, user)
 }
 
-func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, parts []string) {
-	id, err := strconv.Atoi(parts[2])
-	if err != nil {
-		response.SendError(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.queries.DeleteUser(r.Context(), int32(id))
+// "/users/{id}"
+func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, userID int32) {
+	user, err := h.queries.DeleteUser(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.SendError(w, "User not found", http.StatusNotFound)
@@ -139,4 +126,12 @@ func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, par
 	}
 
 	response.SendSuccess(w, user, http.StatusOK) // Not StatusNoContent bc this is a soft delete
+}
+
+func parseUserID(path string) (int, error) {
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		return 0, errors.New("invalid path format")
+	}
+	return strconv.Atoi(parts[2])
 }

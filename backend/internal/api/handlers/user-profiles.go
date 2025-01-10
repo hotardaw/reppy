@@ -34,20 +34,25 @@ func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.R
 	case http.MethodPost:
 		h.CreateUserProfile(w, r)
 	case http.MethodGet:
-		switch r.URL.Query().Get("active") {
-		case "true":
-			h.GetAllActiveUserProfiles(w, r)
-		case "false":
-			h.GetAllInactiveUserProfiles(w, r)
-		default:
-			h.GetAllUserProfiles(w, r)
-		}
+		h.handleGet(w, r)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 }
 
+func (h *UserProfileHandler) handleGet(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Query().Get("active") {
+	case "true":
+		h.GetAllActiveUserProfiles(w, r)
+	case "false":
+		h.GetAllInactiveUserProfiles(w, r)
+	default:
+		h.GetAllUserProfiles(w, r)
+	}
+}
+
+// "/user-profiles"
 func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Request) {
 	var request CreateUserProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -61,15 +66,14 @@ func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	createUserProfileParams := sqlc.CreateUserProfileParams{
+	profile, err := h.queries.CreateUserProfile(r.Context(), sqlc.CreateUserProfileParams{
 		UserID:       utils.ToNullInt32(request.UserID),
 		FirstName:    utils.ToNullString(request.FirstName),
 		LastName:     utils.ToNullString(request.LastName),
 		DateOfBirth:  utils.ToNullTime(dob),
 		Gender:       utils.ToNullString(request.Gender),
 		HeightInches: utils.ToNullInt32(request.HeightInches),
-	}
-	profile, err := h.queries.CreateUserProfile(r.Context(), createUserProfileParams)
+	})
 	if err != nil {
 		response.SendError(w, "Failed to create user profile", http.StatusInternalServerError)
 		return
@@ -78,6 +82,7 @@ func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Re
 	response.SendSuccess(w, profile, http.StatusCreated)
 }
 
+// "/user-profiles"
 func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.Request) {
 	userProfiles, err := h.queries.GetAllUserProfiles(r.Context())
 	if err != nil {
@@ -88,6 +93,7 @@ func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.R
 	response.SendSuccess(w, userProfiles)
 }
 
+// "/user-profiles?active=true"
 func (h *UserProfileHandler) GetAllActiveUserProfiles(w http.ResponseWriter, r *http.Request) {
 	activeUserProfiles, err := h.queries.GetAllActiveUserProfiles(r.Context())
 	if err != nil {
@@ -98,6 +104,7 @@ func (h *UserProfileHandler) GetAllActiveUserProfiles(w http.ResponseWriter, r *
 	response.SendSuccess(w, activeUserProfiles)
 }
 
+// "/user-profiles?active=false"
 func (h *UserProfileHandler) GetAllInactiveUserProfiles(w http.ResponseWriter, r *http.Request) {
 	inactiveUserProfiles, err := h.queries.GetAllInactiveUserProfiles(r.Context())
 	if err != nil {

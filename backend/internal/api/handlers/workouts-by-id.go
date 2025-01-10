@@ -41,6 +41,7 @@ func (h *WorkoutByIDHandler) HandleWorkoutsByID(w http.ResponseWriter, r *http.R
 	}
 }
 
+// "/workouts/2"
 func (h *WorkoutByIDHandler) GetWorkoutByIDForUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
@@ -54,12 +55,10 @@ func (h *WorkoutByIDHandler) GetWorkoutByIDForUser(w http.ResponseWriter, r *htt
 		return
 	}
 
-	getWorkoutByIDForUserParams := sqlc.GetWorkoutByIDForUserParams{
+	workout, err := h.queries.GetWorkoutByIDForUser(r.Context(), sqlc.GetWorkoutByIDForUserParams{
 		WorkoutID: workoutID,
 		UserID:    utils.ToNullInt32(userID),
-	}
-
-	workout, err := h.queries.GetWorkoutByIDForUser(r.Context(), getWorkoutByIDForUserParams)
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)
@@ -72,6 +71,7 @@ func (h *WorkoutByIDHandler) GetWorkoutByIDForUser(w http.ResponseWriter, r *htt
 	response.SendSuccess(w, workout)
 }
 
+// "/workouts/2"
 func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
@@ -91,13 +91,11 @@ func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	updateWorkoutParams := sqlc.UpdateWorkoutParams{
+	workout, err := h.queries.UpdateWorkout(r.Context(), sqlc.UpdateWorkoutParams{
 		Title:     utils.ToNullString(request.Title),
 		WorkoutID: workoutID,
 		UserID:    utils.ToNullInt32(userID),
-	}
-
-	workout, err := h.queries.UpdateWorkout(r.Context(), updateWorkoutParams)
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)
@@ -110,6 +108,7 @@ func (h *WorkoutByIDHandler) UpdateWorkoutByID(w http.ResponseWriter, r *http.Re
 	response.SendSuccess(w, workout)
 }
 
+// "/workouts/2"
 func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r.Context())
 	if err != nil {
@@ -123,12 +122,10 @@ func (h *WorkoutByIDHandler) DeleteWorkoutByID(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	deleteWorkoutParams := sqlc.DeleteWorkoutParams{
+	deletedWorkoutID, err := h.queries.DeleteWorkout(r.Context(), sqlc.DeleteWorkoutParams{
 		UserID:    utils.ToNullInt32(userID),
 		WorkoutID: workoutID,
-	}
-
-	deletedWorkoutID, err := h.queries.DeleteWorkout(r.Context(), deleteWorkoutParams)
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.SendError(w, "Workout not found", http.StatusNotFound)

@@ -54,8 +54,8 @@ sample minimal request:
 }
 */
 
+// "/workouts/{workout_id}/workout-sets"
 func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Request) {
-	// "/workouts/{workout_id}/workout-sets"
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 3 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
@@ -79,17 +79,20 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 			response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
 			return
 		}
-		h.CreateWorkoutSets(w, r, workoutID, exerciseID) // "/workouts/{workout_id}/exercises/{exercise_id}/sets"
+		h.CreateWorkoutSets(w, r, int32(workoutID), int32(exerciseID))
 	case http.MethodGet:
-		h.GetAllWorkoutSets(w, r, workoutID) // "/workouts/{workout_id}/sets"
+		h.GetAllWorkoutSets(w, r, int32(workoutID))
 	case http.MethodDelete:
-		h.DeleteAllWorkoutSets(w, r, workoutID) // "/workouts/{workout_id}/sets"
+		// "/workouts/{workout_id}/sets"
+		h.DeleteAllWorkoutSets(w, r, int32(workoutID))
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
-func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int64) {
+// "/workouts/{workout_id}/exercises/{exercise_id}/sets"
+func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int32) {
 	var request CreateWorkoutSetsRequest
 	fmt.Println("Request: ", request)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -102,12 +105,9 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// verify user sending req matches user getting sets added
-	// userID, err := middleware.GetUserIDFromContext(r.Context())
-
 	params := sqlc.CreateWorkoutSetsParams{
-		Column1: int32(workoutID),                     // workout_id
-		Column2: int32(exerciseID),                    // exercise_id
+		Column1: workoutID,                            // workout_id
+		Column2: exerciseID,                           // exercise_id
 		Column3: make([]int32, request.NumberOfSets),  // set_number
 		Column4: make([]int32, request.NumberOfSets),  // reps
 		Column5: make([]string, request.NumberOfSets), // resistance_value
@@ -149,10 +149,9 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, sets, http.StatusCreated)
 }
 
-func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	// ensure it's a user making their own request, only return that user's data
-
-	allWorkoutSets, err := h.queries.GetAllWorkoutSets(r.Context(), int32(workoutID))
+// "/workouts/{workout_id}/sets"
+func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int32) {
+	allWorkoutSets, err := h.queries.GetAllWorkoutSets(r.Context(), workoutID)
 	if err != nil {
 		response.SendError(w, "All workout sets not found", http.StatusInternalServerError)
 		return
@@ -161,9 +160,9 @@ func (h *WorkoutSetHandler) GetAllWorkoutSets(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, allWorkoutSets)
 }
 
-func (h *WorkoutSetHandler) DeleteAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int64) {
-	// get user, ensure it's them deleting their own workout
-	err := h.queries.DeleteAllWorkoutSets(r.Context())
+// "/workouts/{workout_id}/sets"
+func (h *WorkoutSetHandler) DeleteAllWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int32) {
+	err := h.queries.DeleteAllWorkoutSets(r.Context(), workoutID)
 	if err != nil {
 		response.SendError(w, "Failed to delete all workout sets", http.StatusInternalServerError)
 		return

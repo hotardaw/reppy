@@ -18,6 +18,11 @@ func NewMuscleHandler(q *sqlc.Queries) *MuscleHandler {
 	}
 }
 
+type CreateMuscleRequest struct {
+	MuscleName  string `json:"muscle_name"`
+	MuscleGroup string `json:"muscle_group"`
+}
+
 func (h *MuscleHandler) HandleMuscles(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -26,16 +31,15 @@ func (h *MuscleHandler) HandleMuscles(w http.ResponseWriter, r *http.Request) {
 		h.GetMuscle(w, r)
 	case http.MethodDelete:
 		h.DeleteMuscle(w, r)
+	default:
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
 // "/muscles"
 func (h *MuscleHandler) CreateMuscle(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		MuscleName  string `json:"muscle_name"`
-		MuscleGroup string `json:"muscle_group"`
-	}
-
+	var request CreateMuscleRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return

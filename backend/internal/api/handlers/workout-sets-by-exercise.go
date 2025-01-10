@@ -22,7 +22,6 @@ func NewWorkoutSetByExerciseHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutS
 }
 
 func (h *WorkoutSetByExerciseHandler) HandleWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request) {
-	// get workout_id from URL: "/workouts/{workout_id}/exercises/{exercise_id}/sets"
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
@@ -43,20 +42,19 @@ func (h *WorkoutSetByExerciseHandler) HandleWorkoutSetsByExercise(w http.Respons
 
 	switch r.Method {
 	case http.MethodDelete:
-		h.DeleteWorkoutSetsByExercise(w, r, workoutID, exerciseID) // "/workouts/{workout_id}/exercises/{exercise_id}/sets"
+		h.DeleteWorkoutSetsByExercise(w, r, int32(workoutID), int32(exerciseID))
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
-// no set ID in path
-func (h *WorkoutSetByExerciseHandler) DeleteWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int64) {
-	params := sqlc.DeleteWorkoutSetsByExerciseParams{
-		WorkoutID:  int32(workoutID),
-		ExerciseID: int32(exerciseID),
-	}
-
-	err := h.queries.DeleteWorkoutSetsByExercise(r.Context(), params)
+// "/workouts/{workout_id}/exercises/{exercise_id}/sets"
+func (h *WorkoutSetByExerciseHandler) DeleteWorkoutSetsByExercise(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int32) {
+	err := h.queries.DeleteWorkoutSetsByExercise(r.Context(), sqlc.DeleteWorkoutSetsByExerciseParams{
+		WorkoutID:  workoutID,
+		ExerciseID: exerciseID,
+	})
 	if err != nil {
 		response.SendError(w, "Failed to delete workout sets by exercise", http.StatusInternalServerError)
 		return
