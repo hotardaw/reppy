@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"path"
-	"strings"
 	"time"
 
 	"go-fitsync/backend/internal/api/response"
@@ -32,60 +30,22 @@ type CreateUserProfileRequest struct {
 }
 
 func (h *UserProfileHandler) HandleUserProfiles(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimSuffix(r.URL.Path, "/"))
-	parts := strings.Split(cleanPath, "/")
-
-	// Handle both "/user-profiles" & "/user-profiles/active" endpoints
-	if len(parts) != 2 || parts[1] != "user-profiles" {
-		response.SendError(w, "Invalid URL - must be '/user-profiles'", http.StatusBadRequest)
-		return
-	}
-
 	switch r.Method {
-	case http.MethodGet:
-		if r.URL.Query().Get("active") == "true" {
-			h.GetAllActiveUserProfiles(w, r)
-		} else if r.URL.Query().Get("active") == "false" {
-			h.GetAllInactiveUserProfiles(w, r)
-		} else {
-			h.GetAllUserProfiles(w, r)
-		}
 	case http.MethodPost:
 		h.CreateUserProfile(w, r)
+	case http.MethodGet:
+		switch r.URL.Query().Get("active") {
+		case "true":
+			h.GetAllActiveUserProfiles(w, r)
+		case "false":
+			h.GetAllInactiveUserProfiles(w, r)
+		default:
+			h.GetAllUserProfiles(w, r)
+		}
 	default:
-		response.SendError(w, "Method not allowed - only GET and POST allowed at /user-profiles", http.StatusMethodNotAllowed)
+		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-}
-
-func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.Request) {
-	userProfiles, err := h.queries.GetAllUserProfiles(r.Context())
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, userProfiles)
-}
-
-func (h *UserProfileHandler) GetAllActiveUserProfiles(w http.ResponseWriter, r *http.Request) {
-	activeUserProfiles, err := h.queries.GetAllActiveUserProfiles(r.Context())
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, activeUserProfiles)
-}
-
-func (h *UserProfileHandler) GetAllInactiveUserProfiles(w http.ResponseWriter, r *http.Request) {
-	inactiveUserProfiles, err := h.queries.GetAllInactiveUserProfiles(r.Context())
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, inactiveUserProfiles)
 }
 
 func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -111,9 +71,39 @@ func (h *UserProfileHandler) CreateUserProfile(w http.ResponseWriter, r *http.Re
 	}
 	profile, err := h.queries.CreateUserProfile(r.Context(), createUserProfileParams)
 	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		response.SendError(w, "Failed to create user profile", http.StatusInternalServerError)
 		return
 	}
 
 	response.SendSuccess(w, profile, http.StatusCreated)
+}
+
+func (h *UserProfileHandler) GetAllUserProfiles(w http.ResponseWriter, r *http.Request) {
+	userProfiles, err := h.queries.GetAllUserProfiles(r.Context())
+	if err != nil {
+		response.SendError(w, "Failed to retrieve user profiles", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, userProfiles)
+}
+
+func (h *UserProfileHandler) GetAllActiveUserProfiles(w http.ResponseWriter, r *http.Request) {
+	activeUserProfiles, err := h.queries.GetAllActiveUserProfiles(r.Context())
+	if err != nil {
+		response.SendError(w, "Failed to retrieve active user profiles", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, activeUserProfiles)
+}
+
+func (h *UserProfileHandler) GetAllInactiveUserProfiles(w http.ResponseWriter, r *http.Request) {
+	inactiveUserProfiles, err := h.queries.GetAllInactiveUserProfiles(r.Context())
+	if err != nil {
+		response.SendError(w, "Failed to retrieve inactive user profiles", http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, inactiveUserProfiles)
 }

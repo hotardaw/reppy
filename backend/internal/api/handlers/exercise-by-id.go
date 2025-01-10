@@ -34,6 +34,7 @@ func (h *ExerciseByIDHandler) HandleExercisesByID(w http.ResponseWriter, r *http
 	}
 }
 
+// "/exercises/"
 func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Request, idStr string) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -50,6 +51,7 @@ func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Req
 	response.SendSuccess(w, exercise)
 }
 
+// "/exercises/"
 func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Request, idStr string) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {

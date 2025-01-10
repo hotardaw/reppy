@@ -53,12 +53,11 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// "/signup"
 func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	// tasks remaining here:
 	// validate email format, password strength, username char requirements before processing
-	// generate & return auth tokens immediately so user's already signed in after acct creation
 	// log failed signup attempts
-
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		log.Printf("Received request with method: %s", r.Method)
@@ -120,6 +119,7 @@ func (h *AuthHandler) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccess(w, responseData, http.StatusCreated)
 }
 
+// "/login"
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -173,6 +173,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccess(w, responseData)
 }
 
+// "/refresh"
 func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -215,6 +216,7 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 // Since we're using JWTs, which can't be invalidated, we add the refresh token to the blacklist in the auth middleware
 // in prod, we'd store the blacklist in redis or db instead of memory and implement blacklist cleanup
 // in current impl, frontend needs to send a POST req to this logout endpoint with the refresh token stringify'ed in body, then localStorage.removeItem() on both tokens, clear React FE's auth state, and navigate to login or some unprotected page
+// "/logout"
 func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)

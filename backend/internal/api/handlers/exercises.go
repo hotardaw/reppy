@@ -29,36 +29,16 @@ func (h *ExerciseHandler) HandleExercises(w http.ResponseWriter, r *http.Request
 	}
 
 	switch r.Method {
-	case http.MethodGet:
-		h.GetAllExercises(w, r)
 	case http.MethodPost:
 		h.CreateExercise(w, r)
+	case http.MethodGet:
+		h.GetAllExercises(w, r)
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (h *ExerciseHandler) GetExerciseByName(w http.ResponseWriter, r *http.Request) {
-	exerciseName := r.URL.Query().Get("name") // '/exercises?name=Bench%20Press'
-
-	exercise, err := h.queries.GetExerciseByName(r.Context(), exerciseName)
-	if err != nil {
-		response.SendError(w, "Exercise not found", http.StatusInternalServerError)
-	}
-
-	response.SendSuccess(w, exercise)
-}
-
-func (h *ExerciseHandler) GetAllExercises(w http.ResponseWriter, r *http.Request) {
-	exercises, err := h.queries.GetAllExercises(r.Context())
-	if err != nil {
-		response.SendError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccess(w, exercises)
-}
-
+// "/exercises"
 func (h *ExerciseHandler) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	var request CreateExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -77,4 +57,27 @@ func (h *ExerciseHandler) CreateExercise(w http.ResponseWriter, r *http.Request)
 	}
 
 	response.SendSuccess(w, exercise, http.StatusCreated)
+}
+
+// "/exercises?name=Bench%20Press"
+func (h *ExerciseHandler) GetExerciseByName(w http.ResponseWriter, r *http.Request) {
+	exerciseName := r.URL.Query().Get("name")
+
+	exercise, err := h.queries.GetExerciseByName(r.Context(), exerciseName)
+	if err != nil {
+		response.SendError(w, "Exercise not found", http.StatusInternalServerError)
+	}
+
+	response.SendSuccess(w, exercise)
+}
+
+// "/exercises"
+func (h *ExerciseHandler) GetAllExercises(w http.ResponseWriter, r *http.Request) {
+	exercises, err := h.queries.GetAllExercises(r.Context())
+	if err != nil {
+		response.SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccess(w, exercises)
 }
