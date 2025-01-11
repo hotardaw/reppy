@@ -60,5 +60,8 @@ func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	response.SendSuccess(w, exercise, http.StatusNoContent)
+	response.SendSuccess(w, map[string]interface{}{
+		"message":  "Exercise deleted successfully",
+		"exercise": exercise,
+	})
 }

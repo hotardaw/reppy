@@ -9,19 +9,21 @@ import (
 	"net/http"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	"go-fitsync/backend/internal/api/handlers"
 	"go-fitsync/backend/internal/api/middleware"
 	"go-fitsync/backend/internal/config"
 	"go-fitsync/backend/internal/database"
 	"go-fitsync/backend/internal/database/seeder"
 	"go-fitsync/backend/internal/database/sqlc"
-
-	_ "github.com/lib/pq"
 )
 
 const (
-	timeoutDuration = 10 * time.Second
-	maxBodySize     = 1024 * 1024 // 1mb
+	timeoutDuration   = 10 * time.Second
+	maxBodySize       = 1024 * 1024 // 1mb
+	requestsPerSecond = 5
+	burstSize         = 10
 )
 
 func main() {
@@ -55,13 +57,14 @@ func main() {
 	loggingMiddleware := middleware.LoggingMiddleware()
 	authMiddleware := middleware.NewAuthMiddleware(jwtConfig)
 	maxBodySizeMiddleware := middleware.MaxBodySizeMiddleware(maxBodySize)
+	rateLimitMiddleware := middleware.RateLimitMiddleware(requestsPerSecond, burstSize)
 
 	baseMiddleware := []func(http.HandlerFunc) http.HandlerFunc{
 		timeoutMiddleware,
 		loggingMiddleware,
 		maxBodySizeMiddleware,
-		// add rate limiter, ESPECIALLY for refresh tokens
-		// add active-status-only for users in the db, since we perform soft deletes
+		rateLimitMiddleware,
+		// add active-status-only for users in the db, since we perform soft deletes on users
 	}
 	protectedMiddleware := append([]func(http.HandlerFunc) http.HandlerFunc{
 		authMiddleware.AuthenticateJWT,
@@ -124,8 +127,6 @@ func main() {
         <li>/workouts</li>
         <li>/workouts/{workout_id}</li>
         <li>/workouts/{workout_id}/sets</li>
-				
-        <h2>in progress:</h2>
         <li>/workout-sets</li>
         <li>/workout-sets/{workout_id}</li>
 				

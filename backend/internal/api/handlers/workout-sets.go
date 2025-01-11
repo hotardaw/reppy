@@ -25,6 +25,7 @@ func NewWorkoutSetHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutSetHandler 
 
 // req, resp structs
 type CreateWorkoutSetsRequest struct {
+	ExerciseID   int32 `json:"exercise_id"`
 	NumberOfSets int32 `json:"number_of_sets"` // request JSON data will be duplicated this # of times for each set
 	// optional fields (nil if absent):
 	Reps             *int32  `json:"reps"`
@@ -49,8 +50,8 @@ sample req body to test auto-incr in postman:
 
 sample minimal request:
 {
-    "exercise_id": 1,
-    "number_of_sets": 3
+  "exercise_id": 1,
+  "number_of_sets": 3
 }
 */
 
@@ -70,16 +71,7 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 
 	switch r.Method {
 	case http.MethodPost:
-		if len(pathParts) < 6 {
-			response.SendError(w, "Invalid path URL for creating sets", http.StatusBadRequest)
-			return
-		}
-		exerciseID, err := strconv.ParseInt(pathParts[4], 10, 32)
-		if err != nil {
-			response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
-			return
-		}
-		h.CreateWorkoutSets(w, r, int32(workoutID), int32(exerciseID))
+		h.CreateWorkoutSets(w, r, int32(workoutID))
 	case http.MethodGet:
 		h.GetAllWorkoutSets(w, r, int32(workoutID))
 	case http.MethodDelete:
@@ -91,23 +83,28 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// "/workouts/{workout_id}/exercises/{exercise_id}/sets"
-func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID, exerciseID int32) {
+// "/workouts/3/workout-sets"
+func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Request, workoutID int32) {
 	var request CreateWorkoutSetsRequest
-	fmt.Println("Request: ", request)
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	fmt.Println("Request: ", request)
 
 	if request.NumberOfSets <= 0 {
 		response.SendError(w, "Number of sets must be greater than 0", http.StatusBadRequest)
 		return
 	}
 
+	if request.ExerciseID <= 0 {
+		response.SendError(w, "Exercise ID must be provided", http.StatusBadRequest)
+		return
+	}
+
 	params := sqlc.CreateWorkoutSetsParams{
 		Column1: workoutID,                            // workout_id
-		Column2: exerciseID,                           // exercise_id
+		Column2: request.ExerciseID,                   // exercise_id
 		Column3: make([]int32, request.NumberOfSets),  // set_number
 		Column4: make([]int32, request.NumberOfSets),  // reps
 		Column5: make([]string, request.NumberOfSets), // resistance_value

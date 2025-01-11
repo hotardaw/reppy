@@ -25,6 +25,7 @@ func NewExerciseHandler(q *sqlc.Queries) *ExerciseHandler {
 func (h *ExerciseHandler) HandleExercises(w http.ResponseWriter, r *http.Request) {
 	if name := r.URL.Query().Get("name"); name != "" {
 		h.GetExerciseByName(w, r)
+		return
 	}
 
 	switch r.Method {
