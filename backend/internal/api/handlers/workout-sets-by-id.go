@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
-	"go-fitsync/backend/internal/database/sqlc"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"go-fitsync/backend/internal/api/response"
+	"go-fitsync/backend/internal/api/utils"
+	"go-fitsync/backend/internal/database/sqlc"
 )
 
 type WorkoutSetByIDHandler struct {
@@ -23,6 +24,7 @@ func NewWorkoutSetByIDHandler(q *sqlc.Queries, jwtSecret []byte) *WorkoutSetByID
 }
 
 type UpdateWorkoutSetByIDRequest struct {
+	ExerciseID       int32   `json:"exercise_id"`
 	Reps             *int32  `json:"reps"`
 	ResistanceValue  *string `json:"resistance_value"`
 	ResistanceType   *string `json:"resistance_type"`
@@ -31,9 +33,9 @@ type UpdateWorkoutSetByIDRequest struct {
 	Notes            *string `json:"notes"`
 }
 
-func (h *WorkoutSetByIDHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Request) {
+func (h *WorkoutSetByIDHandler) HandleWorkoutSetByID(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 7 {
+	if len(pathParts) < 5 {
 		response.SendError(w, "Invalid path URL", http.StatusBadRequest)
 		return
 	}
@@ -44,31 +46,25 @@ func (h *WorkoutSetByIDHandler) HandleWorkoutSets(w http.ResponseWriter, r *http
 		return
 	}
 
-	exerciseID, err := strconv.ParseInt(pathParts[4], 10, 32)
-	if err != nil {
-		response.SendError(w, "Invalid exercise ID", http.StatusBadRequest)
-		return
-	}
-
-	setNumber, err := strconv.ParseInt(pathParts[6], 10, 32)
+	overallSetNumber, err := strconv.ParseInt(pathParts[4], 10, 32)
 	if err != nil {
 		response.SendError(w, "Invalid set number", http.StatusBadRequest)
 		return
 	}
 
-	switch r.Method {
+	switch r.Method { // "/workouts/3/workout-sets/7"
 	case http.MethodPatch:
-		h.UpdateWorkoutSetByID(w, r, int32(workoutID), int32(exerciseID), int32(setNumber))
+		h.UpdateWorkoutSetByID(w, r, int32(workoutID), int32(overallSetNumber))
 	case http.MethodDelete:
-		h.DeleteWorkoutSetByID(w, r, int32(workoutID), int32(exerciseID), int32(setNumber))
+		h.DeleteWorkoutSetByID(w, r, int32(workoutID), int32(overallSetNumber))
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 }
 
-// "/workouts/{workout_id}/exercises/{exercise_id}/sets/{set_number}"
-func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, exerciseID, setNumber int32) {
+// "/workouts/3/workout-sets/7"
+func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, overallSetNumber int32) {
 	var request UpdateWorkoutSetByIDRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
@@ -76,15 +72,14 @@ func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *h
 	}
 
 	set, err := h.queries.UpdateWorkoutSetByID(r.Context(), sqlc.UpdateWorkoutSetByIDParams{
-		WorkoutID:        workoutID,
-		ExerciseID:       exerciseID,
-		SetNumber:        setNumber,
-		Reps:             utils.ToNullInt32(request.Reps),
-		ResistanceValue:  utils.ToNullStringFromStringPtr(request.ResistanceValue),
-		ResistanceType:   utils.ToNullResistanceTypeEnumFromStringPtr(request.ResistanceType),
-		ResistanceDetail: utils.ToNullStringFromStringPtr(request.ResistanceDetail),
-		Rpe:              utils.ToNullStringFromStringPtr(request.RPE),
-		Notes:            utils.ToNullStringFromStringPtr(request.Notes),
+		WorkoutID:               workoutID,
+		OverallWorkoutSetNumber: overallSetNumber,
+		Reps:                    utils.ToNullInt32(request.Reps),
+		ResistanceValue:         utils.ToNullStringFromStringPtr(request.ResistanceValue),
+		ResistanceType:          utils.ToNullResistanceTypeEnumFromStringPtr(request.ResistanceType),
+		ResistanceDetail:        utils.ToNullStringFromStringPtr(request.ResistanceDetail),
+		Rpe:                     utils.ToNullStringFromStringPtr(request.RPE),
+		Notes:                   utils.ToNullStringFromStringPtr(request.Notes),
 	})
 	if err != nil {
 		response.SendError(w, "Failed to update workout set", http.StatusInternalServerError)
@@ -94,12 +89,11 @@ func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *h
 	response.SendSuccess(w, set, http.StatusCreated)
 }
 
-// "/workouts/{workout_id}/exercises/{exercise_id}/sets/{set_number}"
-func (h *WorkoutSetByIDHandler) DeleteWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, exerciseID, setNumber int32) {
+// "/workouts/3/workout-sets/7"
+func (h *WorkoutSetByIDHandler) DeleteWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, overallSetNumber int32) {
 	err := h.queries.DeleteWorkoutSetByID(r.Context(), sqlc.DeleteWorkoutSetByIDParams{
-		WorkoutID:  workoutID,
-		ExerciseID: exerciseID,
-		SetNumber:  setNumber,
+		WorkoutID:               workoutID,
+		OverallWorkoutSetNumber: overallSetNumber,
 	})
 	if err != nil {
 		response.SendError(w, "Failed to delete workout set", http.StatusInternalServerError)

@@ -69,13 +69,12 @@ func (h *WorkoutSetHandler) HandleWorkoutSets(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	switch r.Method {
+	switch r.Method { // "/workouts/{workout_id}/sets"
 	case http.MethodPost:
 		h.CreateWorkoutSets(w, r, int32(workoutID))
 	case http.MethodGet:
 		h.GetAllWorkoutSets(w, r, int32(workoutID))
 	case http.MethodDelete:
-		// "/workouts/{workout_id}/sets"
 		h.DeleteAllWorkoutSets(w, r, int32(workoutID))
 	default:
 		response.SendError(w, "Method not allowed", http.StatusMethodNotAllowed)

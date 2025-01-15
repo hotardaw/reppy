@@ -114,18 +114,16 @@ func (q *Queries) DeleteAllWorkoutSetsUnconditional(ctx context.Context) error {
 const deleteWorkoutSetByID = `-- name: DeleteWorkoutSetByID :exec
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
-AND exercise_id = $2 
-AND set_number = $3
+AND overall_workout_set_number = $2
 `
 
 type DeleteWorkoutSetByIDParams struct {
-	WorkoutID  int32
-	ExerciseID int32
-	SetNumber  int32
+	WorkoutID               int32
+	OverallWorkoutSetNumber int32
 }
 
 func (q *Queries) DeleteWorkoutSetByID(ctx context.Context, arg DeleteWorkoutSetByIDParams) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkoutSetByID, arg.WorkoutID, arg.ExerciseID, arg.SetNumber)
+	_, err := q.db.ExecContext(ctx, deleteWorkoutSetByID, arg.WorkoutID, arg.OverallWorkoutSetNumber)
 	return err
 }
 
@@ -152,7 +150,7 @@ SELECT
 FROM workout_sets ws
 JOIN exercises e ON ws.exercise_id = e.exercise_id
 WHERE ws.workout_id = $1
-ORDER BY ws.exercise_id, ws.set_number
+ORDER BY ws.overall_workout_set_number
 `
 
 type GetAllWorkoutSetsRow struct {
@@ -211,35 +209,32 @@ func (q *Queries) GetAllWorkoutSets(ctx context.Context, workoutID int32) ([]Get
 const updateWorkoutSetByID = `-- name: UpdateWorkoutSetByID :one
 UPDATE workout_sets 
 SET 
-  reps = $3,
-  resistance_value = $4,
-  resistance_type = $5,
-  resistance_detail = $6,
-  rpe = $7,
-  notes = $8
-WHERE workout_id = $9 
-AND exercise_id = $1 
-AND set_number = $2
+  reps = $2,
+  resistance_value = $3,
+  resistance_type = $4,
+  resistance_detail = $5,
+  rpe = $6,
+  notes = $7
+WHERE workout_id = $8 
+AND overall_workout_set_number = $1
 RETURNING workout_id, exercise_id, set_number, overall_workout_set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
 type UpdateWorkoutSetByIDParams struct {
-	ExerciseID       int32
-	SetNumber        int32
-	Reps             sql.NullInt32
-	ResistanceValue  sql.NullString
-	ResistanceType   NullResistanceTypeEnum
-	ResistanceDetail sql.NullString
-	Rpe              sql.NullString
-	Notes            sql.NullString
-	WorkoutID        int32
+	OverallWorkoutSetNumber int32
+	Reps                    sql.NullInt32
+	ResistanceValue         sql.NullString
+	ResistanceType          NullResistanceTypeEnum
+	ResistanceDetail        sql.NullString
+	Rpe                     sql.NullString
+	Notes                   sql.NullString
+	WorkoutID               int32
 }
 
 // Make batch version of this later
 func (q *Queries) UpdateWorkoutSetByID(ctx context.Context, arg UpdateWorkoutSetByIDParams) (WorkoutSet, error) {
 	row := q.db.QueryRowContext(ctx, updateWorkoutSetByID,
-		arg.ExerciseID,
-		arg.SetNumber,
+		arg.OverallWorkoutSetNumber,
 		arg.Reps,
 		arg.ResistanceValue,
 		arg.ResistanceType,

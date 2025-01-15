@@ -25,28 +25,26 @@ SELECT
 FROM workout_sets ws
 JOIN exercises e ON ws.exercise_id = e.exercise_id
 WHERE ws.workout_id = $1
-ORDER BY ws.exercise_id, ws.set_number;
+ORDER BY ws.overall_workout_set_number;
 
 -- Make batch version of this later
 -- name: UpdateWorkoutSetByID :one
 UPDATE workout_sets 
 SET 
-  reps = $3,
-  resistance_value = $4,
-  resistance_type = $5,
-  resistance_detail = $6,
-  rpe = $7,
-  notes = $8
-WHERE workout_id = $9 
-AND exercise_id = $1 
-AND set_number = $2
+  reps = $2,
+  resistance_value = $3,
+  resistance_type = $4,
+  resistance_detail = $5,
+  rpe = $6,
+  notes = $7
+WHERE workout_id = $8 
+AND overall_workout_set_number = $1
 RETURNING *;
 
 -- name: DeleteWorkoutSetByID :exec
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
-AND exercise_id = $2 
-AND set_number = $3;
+AND overall_workout_set_number = $2;
 
 -- name: DeleteWorkoutSetsByExercise :exec
 DELETE FROM workout_sets 
