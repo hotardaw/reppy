@@ -163,15 +163,16 @@ type Workout struct {
 }
 
 type WorkoutSet struct {
-	WorkoutID        int32
-	ExerciseID       int32
-	SetNumber        int32
-	Reps             sql.NullInt32
-	ResistanceValue  sql.NullString
-	ResistanceType   NullResistanceTypeEnum
-	ResistanceDetail sql.NullString
-	Rpe              sql.NullString
-	Percent1rm       sql.NullString
-	Notes            sql.NullString
-	CreatedAt        sql.NullTime
+	WorkoutID               int32
+	ExerciseID              int32
+	SetNumber               int32
+	OverallWorkoutSetNumber int32
+	Reps                    sql.NullInt32
+	ResistanceValue         sql.NullString
+	ResistanceType          NullResistanceTypeEnum
+	ResistanceDetail        sql.NullString
+	Rpe                     sql.NullString
+	Percent1rm              sql.NullString
+	Notes                   sql.NullString
+	CreatedAt               sql.NullTime
 }

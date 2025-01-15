@@ -37,7 +37,7 @@ CREATE TABLE workouts (
 );
 
 -- This is intended as a reference table of exercises.
--- Eventually we'll add a multi-valued user_id attribute to show which users have performed which exercises, and maybe we can use that for caching recently-performed exercises for users
+-- Eventually i'll add a multi-valued user_id attribute (or something a little better for atomicity, likely) to show which users have performed which exercises, and maybe we can use that for caching recently-performed exercises for users
 CREATE TABLE exercises (
     exercise_id SERIAL PRIMARY KEY,
     exercise_name VARCHAR(100) NOT NULL UNIQUE,
@@ -46,40 +46,55 @@ CREATE TABLE exercises (
 );
 
 CREATE TYPE resistance_type_enum AS ENUM ('weight', 'band', 'bodyweight');
+CREATE SEQUENCE workout_set_number_seq;
 CREATE TABLE workout_sets (
     workout_id INTEGER REFERENCES workouts(workout_id) NOT NULL,
     exercise_id INTEGER REFERENCES exercises(exercise_id) NOT NULL,
-    set_number INTEGER NOT NULL,          -- We'll handle this in the application layer
-    reps INTEGER,                         -- Optional - filled in when performed
-    resistance_value DECIMAL(5,1),        -- Optional - weight in lbs/kg
-    resistance_type resistance_type_enum, -- Optional - 'weight', 'band', 'bodyweight' only
-    resistance_detail VARCHAR(100),       -- Optional - band color, cable attachment, etc.
-    rpe DECIMAL(3,1),                     -- Optional
-    percent_1rm DECIMAL(4,1),             -- Optional
-    notes TEXT,                           -- Optional
+    set_number INTEGER NOT NULL,                -- Set number of a given exercise
+    overall_workout_set_number SERIAL NOT NULL, -- Overall set number in workout; resets at 1 for each workout
+    reps INTEGER,                               -- Optional - filled in when performed
+    resistance_value DECIMAL(5,1),              -- Optional - weight in lbs/kg
+    resistance_type resistance_type_enum,       -- Optional - 'weight', 'band', 'bodyweight' only
+    resistance_detail VARCHAR(100),             -- Optional - band color, cable attachment, etc.
+    rpe DECIMAL(3,1),                           -- Optional
+    percent_1rm DECIMAL(4,1),                   -- Optional
+    notes TEXT,                                 -- Optional
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (workout_id, exercise_id, set_number)
+    PRIMARY KEY (workout_id, exercise_id, set_number),
+    UNIQUE (workout_id, overall_workout_set_number)
 );
 
--- This will contribute to generating (weekly?) volume reports for users showing muscle groups they might've over/underworked
+-- Create a trigger to manage numbering per workout
+CREATE OR REPLACE FUNCTION reset_workout_set_number()
+RETURNS TRIGGER AS $$
+DECLARE
+    new_number INTEGER;
+BEGIN
+    -- Get next number for this workout
+    SELECT COALESCE(MAX(overall_workout_set_number), 0) + 1
+    INTO new_number
+    FROM workout_sets
+    WHERE workout_id = NEW.workout_id;
+    
+    -- Set the number
+    NEW.overall_workout_set_number = new_number;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER reset_workout_set_number_trigger
+    BEFORE INSERT ON workout_sets
+    FOR EACH ROW
+    EXECUTE FUNCTION reset_workout_set_number();
+
+-- This will play a part in the ability to gen volume reports for users showing how many sets per muscle group they did in a given timeframe
 CREATE TABLE muscles (
     muscle_id SERIAL PRIMARY KEY,
     muscle_name VARCHAR(50) NOT NULL UNIQUE,
     muscle_group VARCHAR(50) NOT NULL,  -- e.g., 'Back', 'Chest', 'Legs'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
--- Junction table for exercise-muscle relationships
-CREATE TYPE involvement_level_enum AS ENUM ('primary', 'secondary');
-CREATE TABLE exercise_muscles (
-    exercise_id INTEGER REFERENCES exercises(exercise_id),
-    muscle_id INTEGER REFERENCES muscles(muscle_id),
-    involvement_level involvement_level_enum NOT NULL,
-    PRIMARY KEY (exercise_id, muscle_id)
-);
-
-
-
 
 CREATE VIEW exercise_one_rm AS
 SELECT 
@@ -94,6 +109,14 @@ WHERE ws.resistance_type = 'weight'
   AND ws.reps IS NOT NULL
 GROUP BY w.user_id, e.exercise_name;
 
+-- Junction table for exercise-muscle relationships
+CREATE TYPE involvement_level_enum AS ENUM ('primary', 'secondary');
+CREATE TABLE exercise_muscles (
+    exercise_id INTEGER REFERENCES exercises(exercise_id),
+    muscle_id INTEGER REFERENCES muscles(muscle_id),
+    involvement_level involvement_level_enum NOT NULL,
+    PRIMARY KEY (exercise_id, muscle_id)
+);
 
 -- For frequently queried fields
 CREATE INDEX idx_users_email ON users(email);

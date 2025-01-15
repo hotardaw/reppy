@@ -28,7 +28,7 @@ WITH input_rows AS (
 INSERT INTO workout_sets 
 (workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes)
 SELECT workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, notes FROM input_rows
-RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
+RETURNING workout_id, exercise_id, set_number, overall_workout_set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
 type CreateWorkoutSetsParams struct {
@@ -68,6 +68,7 @@ func (q *Queries) CreateWorkoutSets(ctx context.Context, arg CreateWorkoutSetsPa
 			&i.WorkoutID,
 			&i.ExerciseID,
 			&i.SetNumber,
+			&i.OverallWorkoutSetNumber,
 			&i.Reps,
 			&i.ResistanceValue,
 			&i.ResistanceType,
@@ -104,6 +105,7 @@ const deleteAllWorkoutSetsUnconditional = `-- name: DeleteAllWorkoutSetsUncondit
 DELETE FROM workout_sets
 `
 
+// Used in seeder cleanup ONLY
 func (q *Queries) DeleteAllWorkoutSetsUnconditional(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteAllWorkoutSetsUnconditional)
 	return err
@@ -145,7 +147,7 @@ func (q *Queries) DeleteWorkoutSetsByExercise(ctx context.Context, arg DeleteWor
 
 const getAllWorkoutSets = `-- name: GetAllWorkoutSets :many
 SELECT 
-  ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.resistance_value, ws.resistance_type, ws.resistance_detail, ws.rpe, ws.percent_1rm, ws.notes, ws.created_at,
+  ws.workout_id, ws.exercise_id, ws.set_number, ws.overall_workout_set_number, ws.reps, ws.resistance_value, ws.resistance_type, ws.resistance_detail, ws.rpe, ws.percent_1rm, ws.notes, ws.created_at,
   e.exercise_name
 FROM workout_sets ws
 JOIN exercises e ON ws.exercise_id = e.exercise_id
@@ -154,18 +156,19 @@ ORDER BY ws.exercise_id, ws.set_number
 `
 
 type GetAllWorkoutSetsRow struct {
-	WorkoutID        int32
-	ExerciseID       int32
-	SetNumber        int32
-	Reps             sql.NullInt32
-	ResistanceValue  sql.NullString
-	ResistanceType   NullResistanceTypeEnum
-	ResistanceDetail sql.NullString
-	Rpe              sql.NullString
-	Percent1rm       sql.NullString
-	Notes            sql.NullString
-	CreatedAt        sql.NullTime
-	ExerciseName     string
+	WorkoutID               int32
+	ExerciseID              int32
+	SetNumber               int32
+	OverallWorkoutSetNumber int32
+	Reps                    sql.NullInt32
+	ResistanceValue         sql.NullString
+	ResistanceType          NullResistanceTypeEnum
+	ResistanceDetail        sql.NullString
+	Rpe                     sql.NullString
+	Percent1rm              sql.NullString
+	Notes                   sql.NullString
+	CreatedAt               sql.NullTime
+	ExerciseName            string
 }
 
 func (q *Queries) GetAllWorkoutSets(ctx context.Context, workoutID int32) ([]GetAllWorkoutSetsRow, error) {
@@ -181,6 +184,7 @@ func (q *Queries) GetAllWorkoutSets(ctx context.Context, workoutID int32) ([]Get
 			&i.WorkoutID,
 			&i.ExerciseID,
 			&i.SetNumber,
+			&i.OverallWorkoutSetNumber,
 			&i.Reps,
 			&i.ResistanceValue,
 			&i.ResistanceType,
@@ -216,7 +220,7 @@ SET
 WHERE workout_id = $9 
 AND exercise_id = $1 
 AND set_number = $2
-RETURNING workout_id, exercise_id, set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
+RETURNING workout_id, exercise_id, set_number, overall_workout_set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
 type UpdateWorkoutSetByIDParams struct {
@@ -249,6 +253,7 @@ func (q *Queries) UpdateWorkoutSetByID(ctx context.Context, arg UpdateWorkoutSet
 		&i.WorkoutID,
 		&i.ExerciseID,
 		&i.SetNumber,
+		&i.OverallWorkoutSetNumber,
 		&i.Reps,
 		&i.ResistanceValue,
 		&i.ResistanceType,
