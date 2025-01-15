@@ -1,0 +1,128 @@
+{
+	"info": {
+		"_postman_id": "3fa0d9b8-9f72-413b-865f-9cc4af892767",
+		"name": "04. \"/muscles\"",
+		"description": "This collection will very rarely, if ever, receive updates. Muscle data is used to categorize exercises and, in the future, generate (weekly) volume reports for users to analyze their volume needs to figure out what works best for them.\n\nYou may notice there's no \"update\" API - this is because of how rarely this table will be written to.\n\nThe DELETE API returns nothing, but you'll see a 204 success response in the Postman console.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34832262"
+	},
+	"item": [
+		{
+			"name": "GET muscle",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8081/muscles?name=Biceps%20Brachii",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"muscles"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "Biceps%20Brachii"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE new muscle",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"muscle_name\": \"Serratus Anterior\",\n    \"muscle_group\": \"Core\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/muscles",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"muscles"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE muscle - no return body, but 204 status indicates success",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/muscles?name=Serratus%20Anterior",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"muscles"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "Serratus%20Anterior"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

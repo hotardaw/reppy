@@ -1,0 +1,173 @@
+{
+	"info": {
+		"_postman_id": "345ca080-4cfc-4b7e-8fba-52d4c2f5a722",
+		"name": "7. \"/workout-sets/",
+		"description": "Practically the magnum opus of this project, at least from a handler standpoint; the CreateWorkoutSets handler used in the first few requests can generate single- or multi-sets per request, along with much optional data pertaining to them. If a user doesn't yet know what reps, resistance values, resistance types, RPEs or personal notes they'll add to the sets, they can add it later via the UpdateWorkoutSetByID handler.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34832262"
+	},
+	"item": [
+		{
+			"name": "CREATE workout set - single set, no optional params included",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"exercise_id\": 1,\n    \"number_of_sets\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/workouts/3/workout-sets",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"workouts",
+						"3",
+						"workout-sets"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE workout sets - 4 sets, only SOME optional params included (resistance_detail and notes fields missing)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"exercise_id\": 2,\n    \"number_of_sets\": 4,\n    \"reps\": 8,\n    \"resistance_value\": \"225\",\n    \"resistance_type\": \"weight\",\n    \"rpe\": \"8.5\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/workouts/3/workout-sets",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"workouts",
+						"3",
+						"workout-sets"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE workout set - change exercise_id and reps",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reps\": 7,\n    \"resistance_value\": \"215\",\n    \"resistance_type\": \"weight\",\n    \"rpe\": \"8.5\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/workouts/3/workout-sets/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"workouts",
+						"3",
+						"workout-sets",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE workout set",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{accessToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8081/workouts/3/workout-sets/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"workouts",
+						"3",
+						"workout-sets",
+						"5"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
