@@ -132,7 +132,7 @@ func IntPtr(i int32) *int32         { return &i }
 func StrPtr(s string) *string       { return &s }
 func Float32Ptr(f float32) *float32 { return &f }
 
-func ToNullIntFromIntPtr(i *int32) sql.NullInt32 {
+func ToNullInt32FromIntPtr(i *int32) sql.NullInt32 {
 	if i == nil {
 		return sql.NullInt32{}
 	}

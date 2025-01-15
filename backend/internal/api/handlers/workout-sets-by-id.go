@@ -74,7 +74,7 @@ func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *h
 	set, err := h.queries.UpdateWorkoutSetByID(r.Context(), sqlc.UpdateWorkoutSetByIDParams{
 		WorkoutID:               workoutID,
 		OverallWorkoutSetNumber: overallSetNumber,
-		Reps:                    utils.ToNullInt32(request.Reps),
+		Reps:                    utils.ToNullInt32FromIntPtr(request.Reps),
 		ResistanceValue:         utils.ToNullStringFromStringPtr(request.ResistanceValue),
 		ResistanceType:          utils.ToNullResistanceTypeEnumFromStringPtr(request.ResistanceType),
 		ResistanceDetail:        utils.ToNullStringFromStringPtr(request.ResistanceDetail),
@@ -86,7 +86,7 @@ func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *h
 		return
 	}
 
-	response.SendSuccess(w, set, http.StatusCreated)
+	response.SendSuccess(w, set)
 }
 
 // "/workouts/3/workout-sets/7"
@@ -100,5 +100,5 @@ func (h *WorkoutSetByIDHandler) DeleteWorkoutSetByID(w http.ResponseWriter, r *h
 		return
 	}
 
-	response.SendSuccess(w, nil, http.StatusNoContent)
+	response.SendSuccess(w, nil, http.StatusOK)
 }
