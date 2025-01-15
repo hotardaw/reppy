@@ -82,11 +82,14 @@ func (h *MuscleHandler) DeleteMuscle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	muscle, err := h.queries.DeleteMuscle(r.Context(), muscleName)
+	deletedMuscle, err := h.queries.DeleteMuscle(r.Context(), muscleName)
 	if err != nil {
 		response.SendError(w, "Failed to delete muscle", http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccess(w, muscle, http.StatusNoContent)
+	response.SendSuccess(w, map[string]interface{}{
+		"message": "Muscle deleted successfully",
+		"id":      deletedMuscle,
+	}, http.StatusOK) // Not StatusNoContent bc this is a soft delete))
 }

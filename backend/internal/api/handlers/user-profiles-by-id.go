@@ -108,7 +108,7 @@ func (h *UserProfileByIDHandler) UpdateUserProfile(w http.ResponseWriter, r *htt
 
 // "/user-profiles/{id}"
 func (h *UserProfileByIDHandler) DeleteUserProfile(w http.ResponseWriter, r *http.Request, id int) {
-	userProfile, err := h.queries.DeleteUserProfile(r.Context(), utils.ToNullInt32(id))
+	deletedUserProfile, err := h.queries.DeleteUserProfile(r.Context(), utils.ToNullInt32(id))
 	if errors.Is(err, sql.ErrNoRows) {
 		response.SendError(w, "User profile not found", http.StatusNotFound)
 		return
@@ -118,5 +118,8 @@ func (h *UserProfileByIDHandler) DeleteUserProfile(w http.ResponseWriter, r *htt
 		return
 	}
 
-	response.SendSuccess(w, userProfile, http.StatusOK) // Not StatusNoContent bc this is a soft delete
+	response.SendSuccess(w, map[string]interface{}{
+		"message": "User profile (soft-) deleted successfully",
+		"id":      deletedUserProfile,
+	}, http.StatusOK) // Not StatusNoContent bc this is a soft delete)
 }

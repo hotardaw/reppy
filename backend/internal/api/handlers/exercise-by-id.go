@@ -54,7 +54,7 @@ func (h *ExerciseByIDHandler) GetExerciseByID(w http.ResponseWriter, r *http.Req
 
 // "/exercises/"
 func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Request, id int32) {
-	exercise, err := h.queries.DeleteExercise(r.Context(), id)
+	deletedExercise, err := h.queries.DeleteExercise(r.Context(), id)
 	if err != nil {
 		response.SendError(w, "Failed to delete exercise", http.StatusInternalServerError)
 		return
@@ -62,6 +62,6 @@ func (h *ExerciseByIDHandler) DeleteExercise(w http.ResponseWriter, r *http.Requ
 
 	response.SendSuccess(w, map[string]interface{}{
 		"message":  "Exercise deleted successfully",
-		"exercise": exercise,
-	})
+		"exercise": deletedExercise,
+	}, http.StatusOK) // Not StatusNoContent bc this is a soft delete
 }

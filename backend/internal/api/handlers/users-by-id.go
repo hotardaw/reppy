@@ -115,7 +115,7 @@ func (h *UserByIDHandler) UpdateUser(w http.ResponseWriter, r *http.Request, use
 
 // "/users/{id}"
 func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, userID int32) {
-	user, err := h.queries.DeleteUser(r.Context(), userID)
+	deletedUser, err := h.queries.DeleteUser(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.SendError(w, "User not found", http.StatusNotFound)
@@ -125,8 +125,18 @@ func (h *UserByIDHandler) DeleteUser(w http.ResponseWriter, r *http.Request, use
 		return
 	}
 
-	response.SendSuccess(w, user, http.StatusOK) // Not StatusNoContent bc this is a soft delete
+	response.SendSuccess(w, map[string]interface{}{
+		"message": "Muscle deleted successfully",
+		"id":      deletedUser,
+	}, http.StatusOK) // Not StatusNoContent bc this is a soft delete
 }
+
+/*
+map[string]interface{}{
+		"message": "Muscle deleted successfully",
+		"id":      deletedMuscle,
+	}
+*/
 
 func parseUserID(path string) (int, error) {
 	parts := strings.Split(path, "/")
