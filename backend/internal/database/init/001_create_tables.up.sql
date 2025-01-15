@@ -60,8 +60,7 @@ CREATE TABLE workout_sets (
     percent_1rm DECIMAL(4,1),                   -- Optional
     notes TEXT,                                 -- Optional
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (workout_id, exercise_id, set_number),
-    UNIQUE (workout_id, overall_workout_set_number)
+    PRIMARY KEY (workout_id, overall_workout_set_number)
 );
 
 -- Create a trigger to manage numbering per workout

@@ -91,7 +91,7 @@ func (h *WorkoutSetByIDHandler) UpdateWorkoutSetByID(w http.ResponseWriter, r *h
 
 // "/workouts/3/workout-sets/7"
 func (h *WorkoutSetByIDHandler) DeleteWorkoutSetByID(w http.ResponseWriter, r *http.Request, workoutID, overallSetNumber int32) {
-	err := h.queries.DeleteWorkoutSetByID(r.Context(), sqlc.DeleteWorkoutSetByIDParams{
+	deletedWorkoutSet, err := h.queries.DeleteWorkoutSetByID(r.Context(), sqlc.DeleteWorkoutSetByIDParams{
 		WorkoutID:               workoutID,
 		OverallWorkoutSetNumber: overallSetNumber,
 	})
@@ -100,5 +100,8 @@ func (h *WorkoutSetByIDHandler) DeleteWorkoutSetByID(w http.ResponseWriter, r *h
 		return
 	}
 
-	response.SendSuccess(w, nil, http.StatusOK)
+	response.SendSuccess(w, map[string]interface{}{
+		"message": "Muscle deleted successfully",
+		"id":      deletedWorkoutSet,
+	}, http.StatusOK)
 }

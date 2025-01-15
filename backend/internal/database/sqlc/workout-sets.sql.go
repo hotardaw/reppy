@@ -111,10 +111,11 @@ func (q *Queries) DeleteAllWorkoutSetsUnconditional(ctx context.Context) error {
 	return err
 }
 
-const deleteWorkoutSetByID = `-- name: DeleteWorkoutSetByID :exec
+const deleteWorkoutSetByID = `-- name: DeleteWorkoutSetByID :one
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
 AND overall_workout_set_number = $2
+RETURNING workout_id, exercise_id, set_number, overall_workout_set_number, reps, resistance_value, resistance_type, resistance_detail, rpe, percent_1rm, notes, created_at
 `
 
 type DeleteWorkoutSetByIDParams struct {
@@ -122,9 +123,24 @@ type DeleteWorkoutSetByIDParams struct {
 	OverallWorkoutSetNumber int32
 }
 
-func (q *Queries) DeleteWorkoutSetByID(ctx context.Context, arg DeleteWorkoutSetByIDParams) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkoutSetByID, arg.WorkoutID, arg.OverallWorkoutSetNumber)
-	return err
+func (q *Queries) DeleteWorkoutSetByID(ctx context.Context, arg DeleteWorkoutSetByIDParams) (WorkoutSet, error) {
+	row := q.db.QueryRowContext(ctx, deleteWorkoutSetByID, arg.WorkoutID, arg.OverallWorkoutSetNumber)
+	var i WorkoutSet
+	err := row.Scan(
+		&i.WorkoutID,
+		&i.ExerciseID,
+		&i.SetNumber,
+		&i.OverallWorkoutSetNumber,
+		&i.Reps,
+		&i.ResistanceValue,
+		&i.ResistanceType,
+		&i.ResistanceDetail,
+		&i.Rpe,
+		&i.Percent1rm,
+		&i.Notes,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const deleteWorkoutSetsByExercise = `-- name: DeleteWorkoutSetsByExercise :exec

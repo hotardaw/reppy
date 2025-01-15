@@ -41,10 +41,11 @@ WHERE workout_id = $8
 AND overall_workout_set_number = $1
 RETURNING *;
 
--- name: DeleteWorkoutSetByID :exec
+-- name: DeleteWorkoutSetByID :one
 DELETE FROM workout_sets 
 WHERE workout_id = $1 
-AND overall_workout_set_number = $2;
+AND overall_workout_set_number = $2
+RETURNING *;
 
 -- name: DeleteWorkoutSetsByExercise :exec
 DELETE FROM workout_sets 
