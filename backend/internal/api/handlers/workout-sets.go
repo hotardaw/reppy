@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -89,7 +88,6 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 		response.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("Request: ", request)
 
 	if request.NumberOfSets <= 0 {
 		response.SendError(w, "Number of sets must be greater than 0", http.StatusBadRequest)
@@ -135,8 +133,6 @@ func (h *WorkoutSetHandler) CreateWorkoutSets(w http.ResponseWriter, r *http.Req
 			params.Column9[i] = *request.Notes
 		}
 	}
-
-	fmt.Println("Params: ", params)
 
 	sets, err := h.queries.CreateWorkoutSets(r.Context(), params)
 	if err != nil {
