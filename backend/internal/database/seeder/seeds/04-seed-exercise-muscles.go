@@ -3,7 +3,7 @@ package seeds
 import (
 	"context"
 	"fmt"
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 type TestExerciseMuscles struct {

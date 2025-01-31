@@ -11,12 +11,12 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"go-fitsync/backend/internal/api/handlers"
-	"go-fitsync/backend/internal/api/middleware"
-	"go-fitsync/backend/internal/config"
-	"go-fitsync/backend/internal/database"
-	"go-fitsync/backend/internal/database/seeder"
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/api/handlers"
+	"go-fitstat/backend/internal/api/middleware"
+	"go-fitstat/backend/internal/config"
+	"go-fitstat/backend/internal/database"
+	"go-fitstat/backend/internal/database/seeder"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 const (
@@ -50,7 +50,7 @@ func main() {
 		RefreshSecret:   []byte(cfg.JWT.RefreshSecret),
 		AccessDuration:  30 * time.Minute, // change to 15 later
 		RefreshDuration: 7 * 24 * time.Hour,
-		Issuer:          "fitsync",
+		Issuer:          "fitstat",
 	}
 
 	timeoutMiddleware := middleware.TimeoutMiddleware(timeoutDuration)
@@ -117,9 +117,9 @@ func main() {
 	mux.HandleFunc("/", unprotected(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintf(w, `<html>
-<head><title>FitSync API</title></head>
+<head><title>FitStat API</title></head>
 <body>
-<u>FitSync API Routes</u>:
+<u>FitStat API Routes</u>:
 <li>/signup</li>
 <li>/login</li>
 <li>/refresh</li>

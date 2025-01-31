@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"go-fitsync/backend/internal/api/response"
+	"go-fitstat/backend/internal/api/response"
 )
 
 func TimeoutMiddleware(timeout time.Duration) func(http.HandlerFunc) http.HandlerFunc {

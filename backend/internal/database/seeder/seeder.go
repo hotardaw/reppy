@@ -3,8 +3,8 @@ package seeder
 import (
 	"context"
 	"fmt"
-	"go-fitsync/backend/internal/database/seeder/seeds"
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/database/seeder/seeds"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 func cleanTestData(queries *sqlc.Queries) error {

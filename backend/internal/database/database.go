@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"go-fitsync/backend/internal/config"
+	"go-fitstat/backend/internal/config"
 
 	_ "github.com/lib/pq"
 )

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 // TODO: upgrade these to accept a variadic input for valid checking in instances like "01-seed-users.go"

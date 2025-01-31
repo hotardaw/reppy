@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"go-fitsync/backend/internal/api/response"
+	"go-fitstat/backend/internal/api/response"
 )
 
 var (

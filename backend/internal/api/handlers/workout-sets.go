@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/api/response"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 type WorkoutSetHandler struct {

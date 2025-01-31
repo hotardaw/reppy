@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"go-fitsync/backend/internal/api/response"
-	"go-fitsync/backend/internal/api/utils"
-	"go-fitsync/backend/internal/database/sqlc"
+	"go-fitstat/backend/internal/api/response"
+	"go-fitstat/backend/internal/api/utils"
+	"go-fitstat/backend/internal/database/sqlc"
 )
 
 type ExerciseHandler struct {
