@@ -39,7 +39,7 @@ services:
       - ./backend/internal/database/init:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_USER=user01
-      - POSTGRES_PASSWORD=user01239nTGN35pio!$
+      - POSTGRES_PASSWORD=user01239nTGN35pio!
       - POSTGRES_DB=fitsyncdb
     ports:
       - "8082:5432" #8082:5432 is for connecting to Postgres from outside Docker, e.g. using a db client on host machine
