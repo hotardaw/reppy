@@ -27,7 +27,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_USER=user01
-      - DB_PASSWORD=user01239nTGN35pio!$
+      - DB_PASSWORD=user01239nTGN35pio!
       - DB_NAME=fitsyncdb
     depends_on:
       db:
