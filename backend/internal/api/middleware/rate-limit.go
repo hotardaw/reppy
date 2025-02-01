@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"go-fitstat/backend/internal/api/response"
+	"go-reppy/backend/internal/api/response"
 )
 
 type RateLimiter struct {

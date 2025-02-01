@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"go-fitstat/backend/internal/api/middleware"
-	"go-fitstat/backend/internal/api/response"
-	"go-fitstat/backend/internal/api/utils"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/api/middleware"
+	"go-reppy/backend/internal/api/response"
+	"go-reppy/backend/internal/api/utils"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 type WorkoutHandler struct {

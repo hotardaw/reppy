@@ -11,12 +11,12 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"go-fitstat/backend/internal/api/handlers"
-	"go-fitstat/backend/internal/api/middleware"
-	"go-fitstat/backend/internal/config"
-	"go-fitstat/backend/internal/database"
-	"go-fitstat/backend/internal/database/seeder"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/api/handlers"
+	"go-reppy/backend/internal/api/middleware"
+	"go-reppy/backend/internal/config"
+	"go-reppy/backend/internal/database"
+	"go-reppy/backend/internal/database/seeder"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 const (
@@ -50,7 +50,7 @@ func main() {
 		RefreshSecret:   []byte(cfg.JWT.RefreshSecret),
 		AccessDuration:  30 * time.Minute, // change to 15 later
 		RefreshDuration: 7 * 24 * time.Hour,
-		Issuer:          "fitstat",
+		Issuer:          "reppy",
 	}
 
 	timeoutMiddleware := middleware.TimeoutMiddleware(timeoutDuration)
@@ -117,9 +117,9 @@ func main() {
 	mux.HandleFunc("/", unprotected(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintf(w, `<html>
-<head><title>FitStat API</title></head>
+<head><title>Reppy API</title></head>
 <body>
-<u>FitStat API Routes</u>:
+<u>Reppy API Routes</u>:
 <li>/signup</li>
 <li>/login</li>
 <li>/refresh</li>

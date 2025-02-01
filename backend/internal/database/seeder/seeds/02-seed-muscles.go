@@ -3,7 +3,7 @@ package seeds
 import (
 	"context"
 	"fmt"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 // First add muscles, then the exercise_muscles to show which exercise_ids work which muscles, and whether primary or secondary.

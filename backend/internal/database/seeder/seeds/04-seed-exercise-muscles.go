@@ -3,7 +3,7 @@ package seeds
 import (
 	"context"
 	"fmt"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 type TestExerciseMuscles struct {

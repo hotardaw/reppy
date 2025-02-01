@@ -1,11 +1,11 @@
 {
   "Servers": {
     "1": {
-      "Name": "FitStat DB",
+      "Name": "Reppy DB",
       "Group": "Servers",
       "Host": "db",
       "Port": 5432,
-      "MaintenanceDB": "fitstatdb",
+      "MaintenanceDB": "reppydb",
       "Username": "user01",
       "Password": "user01239nTGN35pio!$",
       "SSLMode": "prefer"

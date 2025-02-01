@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"go-fitstat/backend/internal/api/response"
+	"go-reppy/backend/internal/api/response"
 )
 
 func TimeoutMiddleware(timeout time.Duration) func(http.HandlerFunc) http.HandlerFunc {

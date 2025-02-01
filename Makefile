@@ -1,7 +1,7 @@
 .PHONY: setup start stop logs sqlc prefetch clean
 
 # Get the backend container ID
-BACKEND_CONTAINER := $(shell docker ps | grep fitstat-backend | awk '{print $$1}')
+BACKEND_CONTAINER := $(shell docker ps | grep reppy-backend | awk '{print $$1}')
 
 # Main commands
 setup:
@@ -16,10 +16,10 @@ stop:
 
 # Logs and development commands
 logs:
-	docker logs -f $$(docker ps | grep fitstat-backend | awk '{print $$1}')
+	docker logs -f $$(docker ps | grep reppy-backend | awk '{print $$1}')
 
 sqlc:
-	docker exec -it $$(docker ps | grep fitstat-backend | awk '{print $$1}') sqlc generate
+	docker exec -it $$(docker ps | grep reppy-backend | awk '{print $$1}') sqlc generate
 
 # Utility commands
 prefetch:

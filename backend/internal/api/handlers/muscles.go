@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"go-fitstat/backend/internal/api/response"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/api/response"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 type MuscleHandler struct {

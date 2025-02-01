@@ -1,6 +1,6 @@
 // defines my Go project's module path and dependencies, like a package.json
 // go.sum contains cryptographic checksums of specific versions of dependencies, ensuring reproducible builds. like a package-lock.json
-module go-fitstat/backend
+module go-reppy/backend
 
 go 1.22.2
 

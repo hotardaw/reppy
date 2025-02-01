@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"go-fitstat/backend/internal/api/response"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/api/response"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 type UserHandler struct {

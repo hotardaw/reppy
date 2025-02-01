@@ -1,5 +1,5 @@
 # To open in separate terminal:
-# docker exec -it fitstat-backend-1 /bin/bash
+# docker exec -it reppy-backend-1 /bin/bash
 # tmux
 
 version: '3.8'
@@ -28,7 +28,7 @@ services:
       - DB_HOST=db
       - DB_USER=user01
       - DB_PASSWORD=user01239nTGN35pio!
-      - DB_NAME=fitstatdb
+      - DB_NAME=reppydb
     depends_on:
       db:
         condition: service_healthy
@@ -43,11 +43,11 @@ services:
     environment:
       - POSTGRES_USER=user01
       - POSTGRES_PASSWORD=user01239nTGN35pio!
-      - POSTGRES_DB=fitstatdb
+      - POSTGRES_DB=reppydb
     ports:
       - "8082:5432" #8082:5432 is for connecting to Postgres from outside Docker, e.g. using a db client on host machine
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user01 -d fitstatdb"]
+      test: ["CMD-SHELL", "pg_isready -U user01 -d reppydb"]
       interval: 10s
       timeout: 5s
       retries: 5

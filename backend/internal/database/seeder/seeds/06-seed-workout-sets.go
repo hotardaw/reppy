@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"go-fitstat/backend/internal/api/utils"
-	"go-fitstat/backend/internal/database/sqlc"
+	"go-reppy/backend/internal/api/utils"
+	"go-reppy/backend/internal/database/sqlc"
 )
 
 type TestWorkoutSets struct { // Fields with pointers are nil-able

@@ -25,7 +25,7 @@ func Load() (*Config, error) {
 	cfg.Database.Port = "5432"
 	cfg.Database.User = "user01"
 	cfg.Database.Password = "user01239nTGN35pio!"
-	cfg.Database.DBName = "fitstatdb"
+	cfg.Database.DBName = "reppydb"
 	cfg.Server.Port = "8081"
 	return cfg, nil
 }
