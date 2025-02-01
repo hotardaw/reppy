@@ -36,7 +36,10 @@ services:
   db:
     image: postgres:14
     volumes:
+      # copy init scripts from local init/ into PSQL's special init dir
       - ./backend/internal/database/init:/docker-entrypoint-initdb.d
+      # persist data here, even if container restarts or gets rm'd
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=user01
       - POSTGRES_PASSWORD=user01239nTGN35pio!

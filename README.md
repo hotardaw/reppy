@@ -4,32 +4,13 @@ Thanks for taking a look at FitStat. Below are some helpful terminal commands, a
 
 ## Terminal Commands
 
-*Note: all of these commands are called from the "backend" directory (not root!).*
-
-### For All Users
-
-##### Start Docker container
-```bash
-./../start-app.sh
-```
-
-##### Stop Docker container
-```bash
-docker-compose down -v
-```
-
-##### View real-time Docker container logs
-```bash
-docker logs -f $(docker ps | grep fitstat-backend | awk '{print $1}')
-```
-
-### For Contributors (just me lol)
-
-##### Compile & generate SQLc code
-```bash
-docker exec -it $(docker ps | grep fitstat-backend | awk '{print $1}') sqlc generate
-```
-
+make setup     # Download images and start fresh build
+make start     # Start the app (using start-app.sh)
+make stop      # Stop containers and remove volumes
+make logs      # View backend logs
+make sqlc      # Run SQLc code generation
+make prefetch  # Just download the Docker images
+make clean     # Stop containers and clean up Docker system
 
 ## API Testing with Postman
 
@@ -57,3 +38,4 @@ Then in the left sidebar, hit the first dropdown (Servers (1)) and log in with t
 From there, follow absolute path:
 
 Servers (1) > FitStat DB > Databases (2) > fitstatdb > Schemas (1) > public > Tables (8)
+

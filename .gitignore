@@ -1,1 +1,18 @@
+frontend/node_modules/
+frontend/.env*
+
+backend/tmp/
+backend/build-errors.log
+backend/.env*
+
+# Build outputs/caches
+dist/
+.vite/
+
+# OS files (just in case)
+.DS_Store
+
+# Docker
+postgres_data/
+
 plans.txt
