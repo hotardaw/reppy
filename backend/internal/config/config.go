@@ -1,6 +1,14 @@
 // db config struct and loading
 package config
 
+import (
+	"log"
+	"os"
+	"path/filepath"
+
+	"github.com/joho/godotenv"
+)
+
 type Config struct {
 	Database struct {
 		Host     string
@@ -24,8 +32,13 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	// later: load from env vars or config file
+	// load .env file
+	if err := godotenv.Load(filepath.Join("internal", "config", ".env")); err != nil {
+		log.Printf("Error loading .env file: %v", err)
+	}
+
 	cfg := &Config{}
+
 	cfg.Database.Host = "db"
 	cfg.Database.Port = "5432"
 	cfg.Database.User = "user01"
@@ -34,8 +47,8 @@ func Load() (*Config, error) {
 
 	cfg.Server.Port = "8081"
 
-	cfg.OAuth.GoogleClientID = "1091007547452-vuervm6jrk4o9d8rf1m814ttlkpn6r2b.apps.googleusercontent.com"
-	cfg.OAuth.GoogleClientSecret = "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"
+	cfg.OAuth.GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+	cfg.OAuth.GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	cfg.OAuth.GoogleRedirectURL = "http://localhost:8081/auth/google/callback"
 
 	return cfg, nil

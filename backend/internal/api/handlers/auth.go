@@ -400,11 +400,9 @@ func (h *GoogleAuthHandler) HandleGoogleCallback(w http.ResponseWriter, r *http.
 	}
 
 	// success!
-	// frontendURL := "http://localhost:8080"
-	frontendURL := "http://localhost:8081"
+	frontendURL := "http://localhost:8080"
 	http.Redirect(w, r, fmt.Sprintf("%s?access_token=%s&refresh_token=%s",
 		frontendURL, accessToken, refreshToken), http.StatusTemporaryRedirect)
-
 }
 
 func generateRandomState() string {

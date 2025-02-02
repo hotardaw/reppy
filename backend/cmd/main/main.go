@@ -107,12 +107,6 @@ func main() {
 	// Google OAuth routes
 	mux.HandleFunc("/auth/google/login", unprotected(googleAuthHandler.HandleGoogleLogin))
 	mux.HandleFunc("/auth/google/callback", unprotected(googleAuthHandler.HandleGoogleCallback))
-	mux.HandleFunc("/test-tokens", unprotected(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		accessToken := r.URL.Query().Get("access_token")
-		refreshToken := r.URL.Query().Get("refresh_token")
-		fmt.Fprintf(w, "Access Token: %s<br>Refresh Token: %s", accessToken, refreshToken)
-	}))
 
 	// User routes
 	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                                          // GET(all), POST

@@ -1,29 +1,32 @@
 .PHONY: setup start stop logs sqlc prefetch clean
 
-# Get the backend container ID
+SCRIPTS_DIR := ./scripts
 BACKEND_CONTAINER := $(shell docker ps | grep reppy-backend | awk '{print $$1}')
+
 
 # Main commands
 setup:
-	./prefetch-images.sh
+	$(SCRIPTS_DIR)/prefetch-images.sh
 	docker-compose up --build
 
 start:
-	./../start-app.sh
+	$(SCRIPTS_DIR)/start-app.sh
 
 stop:
 	docker-compose down -v
 
+
 # Logs and development commands
 logs:
-	docker logs -f $$(docker ps | grep reppy-backend | awk '{print $$1}')
+	docker logs -f $(BACKEND_CONTAINER)
 
 sqlc:
-	docker exec -it $$(docker ps | grep reppy-backend | awk '{print $$1}') sqlc generate
+	docker exec -it $(BACKEND_CONTAINER) sqlc generate
+
 
 # Utility commands
 prefetch:
-	./prefetch-images.sh
+	$(SCRIPTS_DIR)/prefetch-images.sh
 
 clean: stop
 	docker system prune -f
