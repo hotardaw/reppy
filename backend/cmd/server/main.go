@@ -46,11 +46,14 @@ func main() {
 	}
 
 	jwtConfig := middleware.JWTConfig{
-		AccessSecret:    []byte(cfg.JWT.AccessSecret),
-		RefreshSecret:   []byte(cfg.JWT.RefreshSecret),
-		AccessDuration:  30 * time.Minute, // change to 15 later
-		RefreshDuration: 7 * 24 * time.Hour,
-		Issuer:          "reppy",
+		AccessSecret:       []byte(cfg.JWT.AccessSecret),
+		RefreshSecret:      []byte(cfg.JWT.RefreshSecret),
+		AccessDuration:     30 * time.Minute, // change to 15 later
+		RefreshDuration:    7 * 24 * time.Hour,
+		Issuer:             "reppy",
+		GoogleClientID:     cfg.OAuth.GoogleClientID,
+		GoogleClientSecret: cfg.OAuth.GoogleClientSecret,
+		GoogleRedirectURL:  cfg.OAuth.GoogleRedirectURL,
 	}
 
 	timeoutMiddleware := middleware.TimeoutMiddleware(timeoutDuration)
@@ -80,6 +83,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(queries, authMiddleware)
+	googleAuthHandler := handlers.NewGoogleAuthHandler(queries, authMiddleware, jwtConfig)
 	userHandler := handlers.NewUserHandler(queries)
 	userByIDHandler := handlers.NewUserByIDHandler(queries)
 	userProfileHandler := handlers.NewUserProfileHandler(queries)
@@ -99,6 +103,16 @@ func main() {
 	mux.HandleFunc("/login", unprotected(authHandler.HandleLogin))
 	mux.HandleFunc("/refresh", unprotected(authHandler.HandleRefresh))
 	mux.HandleFunc("/logout", unprotected(authHandler.HandleLogout))
+
+	// Google OAuth routes
+	mux.HandleFunc("/auth/google/login", unprotected(googleAuthHandler.HandleGoogleLogin))
+	mux.HandleFunc("/auth/google/callback", unprotected(googleAuthHandler.HandleGoogleCallback))
+	mux.HandleFunc("/test-tokens", unprotected(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		accessToken := r.URL.Query().Get("access_token")
+		refreshToken := r.URL.Query().Get("refresh_token")
+		fmt.Fprintf(w, "Access Token: %s<br>Refresh Token: %s", accessToken, refreshToken)
+	}))
 
 	// User routes
 	mux.HandleFunc("/users", protected(userHandler.HandleUsers))                                                          // GET(all), POST
@@ -124,6 +138,8 @@ func main() {
 <li>/login</li>
 <li>/refresh</li>
 <li>/logout</li>
+<li>/auth/google/login</li>
+<li>/auth/google/callback</li>
 <li>/users</li>
 <li>/users/{id}</li>
 <li>/user-profiles</li>

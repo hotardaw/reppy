@@ -14,6 +14,9 @@ SELECT * FROM users
 WHERE email = $1 AND active = true
 LIMIT 1;
 
+-- name: GetUserByGoogleID :one
+SELECT * FROM users WHERE google_id = $1;
+
 -- name: GetAllUsers :many
 SELECT *
 FROM users;
@@ -21,6 +24,12 @@ FROM users;
 -- name: CreateUser :one
 INSERT INTO users (email, password_hash, username)
 VALUES ($1, $2, $3)
+RETURNING *;
+
+-- The password_hash here is a dummy hash - Google users don't need a password, and I don't feel like changing the table's constraints
+-- name: CreateGoogleUser :one
+INSERT INTO users (email, username, google_id, auth_provider, password_hash)
+VALUES ($1, $2, $3, 'google', 'GOOGLE_AUTH_USER')
 RETURNING *;
 
 -- name: UpdateUser :one

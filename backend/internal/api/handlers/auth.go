@@ -1,17 +1,24 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
 	"go-reppy/backend/internal/api/middleware"
 	"go-reppy/backend/internal/api/response"
+	"go-reppy/backend/internal/api/utils"
 	"go-reppy/backend/internal/database/sqlc"
 )
 
@@ -24,6 +31,31 @@ func NewAuthHandler(queries *sqlc.Queries, auth *middleware.AuthMiddleware) *Aut
 	return &AuthHandler{
 		queries: queries,
 		auth:    auth,
+	}
+}
+
+type GoogleAuthHandler struct {
+	oauth2Config *oauth2.Config
+	queries      *sqlc.Queries
+	auth         *middleware.AuthMiddleware
+}
+
+func NewGoogleAuthHandler(queries *sqlc.Queries, auth *middleware.AuthMiddleware, config middleware.JWTConfig) *GoogleAuthHandler {
+	oauth2Config := &oauth2.Config{
+		ClientID:     config.GoogleClientID,
+		ClientSecret: config.GoogleClientSecret,
+		RedirectURL:  config.GoogleRedirectURL,
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	return &GoogleAuthHandler{
+		oauth2Config: oauth2Config,
+		queries:      queries,
+		auth:         auth,
 	}
 }
 
@@ -236,4 +268,147 @@ func (h *AuthHandler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccess(w, nil)
+}
+
+/* Google login flow:
+Frontend (localhost:8080)
+  → Google Sign-in
+  → Backend Callback (localhost:8081/auth/google/callback)
+  → Frontend (localhost:8080) with tokens
+*/
+
+func (h *GoogleAuthHandler) HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
+	// to prevent CSRF - gen random string that gets validated when Google redirects user back here
+	state := generateRandomState()
+
+	cookie := &http.Cookie{
+		Name:     "oauthstate",
+		Value:    state,
+		MaxAge:   int(time.Hour.Seconds()),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	url := h.oauth2Config.AuthCodeURL(state)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+// endpoint user is redirected to by Google after sign-in success
+func (h *GoogleAuthHandler) HandleGoogleCallback(w http.ResponseWriter, r *http.Request) {
+	// get state from cookie
+	cookie, err := r.Cookie("oauthstate")
+	if err != nil {
+		response.SendError(w, "State cookie not found", http.StatusBadRequest)
+		return
+	}
+	// verify state match
+	if r.FormValue("state") != cookie.Value {
+		response.SendError(w, "Invalid state parameter", http.StatusBadRequest)
+		return
+	}
+
+	// clear cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauthstate",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+
+	// exchange auth code for a token
+	code := r.URL.Query().Get("code")
+	token, err := h.oauth2Config.Exchange(r.Context(), code)
+	if err != nil {
+		log.Printf("Google auth failed: %v", err)
+		response.SendError(w, "Failed to exchange token", http.StatusInternalServerError)
+		return
+	}
+
+	// get user info from google
+	client := h.oauth2Config.Client(r.Context(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		log.Printf("Failed to get Google user info: %v", err)
+		response.SendError(w, "Failed to get user info", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	var googleUser struct {
+		ID            string `json:"id"`
+		Email         string `json:"email"`
+		VerifiedEmail bool   `json:"verified_email"`
+		Name          string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		log.Printf("Failed to decode Google user info: %v", err)
+		response.SendError(w, "Failed to decode user info", http.StatusInternalServerError)
+		return
+	}
+	if !googleUser.VerifiedEmail {
+		response.SendError(w, "Google email must be verified", http.StatusBadRequest)
+		return
+	}
+
+	// check if user exists
+	user, err := h.queries.GetUserByGoogleID(r.Context(), utils.ToNullString(googleUser.ID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// check if email exists in local auth
+			existingUser, err := h.queries.GetUserByEmail(r.Context(), googleUser.Email)
+			if err == nil && existingUser.AuthProvider == utils.ToNullString("local") {
+				response.SendError(w, "Email already registered with password", http.StatusConflict)
+				return
+			}
+
+			// create new reppy user
+			user, err = h.queries.CreateGoogleUser(r.Context(), sqlc.CreateGoogleUserParams{
+				Email:    googleUser.Email,
+				Username: googleUser.Name,
+				GoogleID: utils.ToNullString(googleUser.ID),
+			})
+			if err != nil {
+				log.Printf("Failed to create Google user: %v", err)
+				if strings.Contains(err.Error(), "unique constraint") {
+					if strings.Contains(err.Error(), "email") {
+						response.SendError(w, "Email already in use", http.StatusConflict)
+						return
+					} else if strings.Contains(err.Error(), "username") {
+						response.SendError(w, "Username already in use", http.StatusConflict)
+						return
+					}
+				}
+
+				response.SendError(w, "Failed to create user", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			log.Printf("Database error: %v", err)
+			response.SendError(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// grant JWTs
+	accessToken, refreshToken, err := h.auth.GenerateTokenPair(int64(user.UserID))
+	if err != nil {
+		log.Printf("Failed to generate tokens: %v", err)
+		response.SendError(w, "Failed to generate tokens", http.StatusInternalServerError)
+		return
+	}
+
+	// success!
+	// frontendURL := "http://localhost:8080"
+	frontendURL := "http://localhost:8081"
+	http.Redirect(w, r, fmt.Sprintf("%s?access_token=%s&refresh_token=%s",
+		frontendURL, accessToken, refreshToken), http.StatusTemporaryRedirect)
+
+}
+
+func generateRandomState() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
 }

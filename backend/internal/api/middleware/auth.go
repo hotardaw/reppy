@@ -25,11 +25,14 @@ type contextKey string
 const UserClaimsKey contextKey = "userClaims"
 
 type JWTConfig struct {
-	AccessSecret    []byte
-	RefreshSecret   []byte
-	AccessDuration  time.Duration // 15m
-	RefreshDuration time.Duration // 7d
-	Issuer          string
+	AccessSecret       []byte
+	RefreshSecret      []byte
+	AccessDuration     time.Duration // 15m
+	RefreshDuration    time.Duration // 7d
+	Issuer             string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
 }
 
 type Claims struct {
