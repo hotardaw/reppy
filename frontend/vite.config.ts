@@ -10,37 +10,38 @@ export default defineConfig({
       manifest: {
         name: 'Reppy - Workout and Diet Tracker',
         short_name: 'Reppy',
-        description: "Reppy is a smart tracking app that helps you reach your fitness & health goals - track your workouts, whether you're into cardio or lifting, and create reproducible recipes to conveniently log your meals.",
+        description: "Reppy is a smart tracking app that helps you reach your fitness & health goals.",
         icons: [
-          // Add your app icons in different sizes
           {
-            src: '/src/assets/reppy-app-logo.png',
-            sizes: '1154x1154',
+            src: '/public/reppy-app-logo-180.png',
+            sizes: '180x180',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/public/reppy-app-logo-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/public/reppy-app-logo-192.png',
+            sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           }
-          // {
-          //   src: '/src/assets/reppy-logo-192.jpg',
-          //   sizes: '192x192',
-          //   type: 'image/jpg',
-          // },
-          // {
-          //   src: '/src/assets/reppy-logo-180.jpg',
-          //   sizes: '180x180',
-          //   type: 'image/jpg',
-          // }
         ],
-        // theme_color: '#ffffff', // Add your theme color
-        // background_color: '#ffffff', // Add your background color
-        // display: 'standalone',
-        // scope: '/',
-        // start_url: '/',
-        // orientation: 'portrait'
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
+        orientation: 'portrait'
       },
-      // includeAssets: ['favicon.ico'], // Add favicon and other assets
-      // workbox: {
-      //   sourcemap: true
-      // }
+      includeAssets: ['favicon.ico'],
+      workbox: {
+        sourcemap: true
+      }
     })
   ],
   server: {
