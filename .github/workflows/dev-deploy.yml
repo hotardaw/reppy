@@ -1,0 +1,32 @@
+# upon pushing to dev branch, machines running that branch will pull and restart docker containers
+
+name: Deploy to Home Server - Dev Branch
+
+on:
+  push:
+    branches:
+      -dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/private.key
+          chmod 600 ~/.ssh/private.key
+          ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+        run: >
+          ssh -i ~/.ssh/private.key $SERVER_USERNAME@$SERVER_HOST
+          'cd /path/to/your/repo &&
+          git pull origin dev &&
+          ./scripts/start-app.sh'
