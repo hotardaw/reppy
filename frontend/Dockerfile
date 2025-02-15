@@ -4,12 +4,12 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
-RUN npm install vite-plugin-pwa
-RUN npm install --save-dev @types/react @types/react-dom typescript @types/node
+RUN npm clean-install
 
 COPY . .
 
+ENV VITE_HOST=0.0.0.0
+
 EXPOSE 8080
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

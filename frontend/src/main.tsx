@@ -12,3 +12,11 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+/*
+Colors I'm considering for app:
+
+#F05D5E (bittersweet)
+#222222 (eerie black)
+#50514F (davy's gray)
+
+*/
