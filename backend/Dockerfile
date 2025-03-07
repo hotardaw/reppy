@@ -1,13 +1,8 @@
 FROM golang:latest
 WORKDIR /app
 
-# Install Air
 RUN go install github.com/air-verse/air@latest
-
-# Install SQLc
 RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-
-# Install tmux
 RUN apt-get update &&apt-get install -y tmux
 
 # Volume mount needed for hot reloading
