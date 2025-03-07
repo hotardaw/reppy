@@ -3,7 +3,7 @@ tmp_dir = "tmp"
 build_dir = "tmp"
 
 [build]
-cmd = "go build -o ./tmp/main ./cmd/server/main.go"
+cmd = "go build -o ./tmp/main ./cmd/main/main.go"
 bin = "./tmp/main"
 include_ext = ["go"]
 exclude_dir = ["tmp"]
