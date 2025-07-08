@@ -5,11 +5,17 @@ Thanks for taking a look at Reppy. Below are some helpful terminal commands, a g
 ## Terminal Commands
 
 make setup     # Download images and start fresh build
+
 make start     # Start the app (using start-app.sh)
+
 make stop      # Stop containers and remove volumes
+
 make logs      # View backend logs
+
 make sqlc      # Run SQLc code generation
+
 make prefetch  # Just download the Docker images
+
 make clean     # Stop containers and clean up Docker system
 
 ## API Testing with Postman
